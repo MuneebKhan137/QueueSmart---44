@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { initialServices, initialQueues } from '../data/mockData';
 
 
 // Admin Dashboard
@@ -12,19 +13,20 @@ export default function AdminDashboard() {
   const card = { border: '5px solid #106cdb', borderRadius: '15px', padding: '15px', flex: 1 };
   const cell = { padding: '10px 12px', borderBottom: '1px solid #e5e5e5', textAlign: 'left' };
   const head = { ...cell, fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' };
-   const [services, setServices] = useState([
-    { id: 1, name: 'Academic Advising', priority: 'medium', duration: 15, queue: 3, isOpen: true },
-    { id: 2, name: 'Financial Aid',     priority: 'high',   duration: 10, queue: 5, isOpen: true },
-    { id: 3, name: 'ID Card Services',  priority: 'low',    duration: 5,  queue: 2, isOpen: true },
-    { id: 4, name: 'Registrar',         priority: 'medium', duration: 20, queue: 6, isOpen: false },
-  ]);
+
+   const [services, setServices] = useState(initialServices);
 
    function toggleOpen(id) {
     setServices(services.map(s => s.id === id ? { ...s, isOpen: !s.isOpen } : s));
   }
 
+  function queueLength(id) {
+    return (initialQueues[id] || []).filter(p => p.status !== 'served').length;
+  }
+
   const openCount = services.filter(s => s.isOpen).length;
-  const waiting = services.filter(s => s.isOpen).reduce((sum, s) => sum + s.queue, 0);
+  const waiting = services.filter(s => s.isOpen).reduce((sum, s) => sum + queueLength(s.id), 0);
+
   return (
     <div>
       <h1 style = {{textAlign: 'center'}}> Admin Dashboard </h1>
@@ -54,8 +56,8 @@ export default function AdminDashboard() {
             <tr key={s.id}>
               <td style={cell}>{s.name}</td>
               <td style={cell}>{s.priority}</td>
-              <td style={cell}>{s.duration} min</td>
-              <td style={cell}>{s.isOpen ? s.queue : 0}</td>
+              <td style={cell}>{s.durationMinutes} min</td>
+              <td style={cell}>{s.isOpen ? queueLength(s.id) : 0}</td>
               <td style={cell}>{s.isOpen ? 'Open' : 'Closed'}</td>
               <td style={cell}>
                 <button onClick={() => toggleOpen(s.id)}>{s.isOpen ? 'Close' : 'Open'}</button>
