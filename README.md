@@ -1,6 +1,6 @@
 # QueueSmart---44
 
-QueueSmart Application (Group 44). 
+QueueSmart Application (Group 42). 
 
 ## Requirements
 
