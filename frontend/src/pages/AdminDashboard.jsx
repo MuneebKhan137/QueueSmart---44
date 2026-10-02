@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { initialServices, initialQueues } from '../data/mockData';
+import { useServices } from '../context/ServiceContext';
 
 
 // Admin Dashboard
@@ -14,15 +13,7 @@ export default function AdminDashboard() {
   const cell = { padding: '10px 12px', borderBottom: '1px solid #e5e5e5', textAlign: 'left' };
   const head = { ...cell, fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' };
 
-   const [services, setServices] = useState(initialServices);
-
-   function toggleOpen(id) {
-    setServices(services.map(s => s.id === id ? { ...s, isOpen: !s.isOpen } : s));
-  }
-
-  function queueLength(id) {
-    return (initialQueues[id] || []).filter(p => p.status !== 'served').length;
-  }
+  const { services, toggleServiceOpen: toggleOpen, getQueueLength: queueLength } = useServices();
 
   const openCount = services.filter(s => s.isOpen).length;
   const waiting = services.filter(s => s.isOpen).reduce((sum, s) => sum + queueLength(s.id), 0);
