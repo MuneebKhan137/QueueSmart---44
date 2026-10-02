@@ -1,13 +1,18 @@
-body { margin: 0; font-family: system-ui, sans-serif; }
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; background: var(--page-bg); }
 .navbar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; padding: 0.75rem 1rem; background: #1f2937; color: #fff; }
 .navbar a { color: #cbd5e1; text-decoration: none; }
 .navbar a.active { color: #fff; font-weight: 600; text-decoration: underline; }
 .container { padding: 1rem; }
 
-.auth-container { max-width: 380px; margin: 4rem auto; font-family: system-ui, sans-serif; }
-.field { display: flex; flex-direction: column; margin-bottom: 1rem; }
-.field input { padding: .6rem; border: 1px solid #aaa; border-radius: 4px; }
-.field input[aria-invalid="true"] { border-color: #c62828; }
-.error { color: #c62828; font-size: .85rem; margin-top: .25rem; }
-.auth-container button[type="submit"] { width: 100%; padding: .7rem; border: 0; border-radius: 4px; background: #1a73e8; color: #fff; cursor: pointer; }
-.auth-container button[disabled] { opacity: .6; cursor: not-allowed; }
+:root {
+  --red: #d71f1b;
+  --red-dark: #b81814;
+  --red-soft: #fde8e6;
+  --page-bg: #f8f6f4;
+  --card-bg: #ffffff;
+  --input-bg: #fcfaf8;
+  --surface: #f5f3f0;
+  --border: #e6e1dc;
+  --text: #1f1f1f;
+  --muted: #8a8580;
+}

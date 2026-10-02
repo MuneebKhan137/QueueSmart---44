@@ -1,0 +1,120 @@
+import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { initialNotifications } from "../data/mockData";
+import NotificationToast from "../components/NotificationToast";
+
+// context, starts as null so hook can tell if there's no provider
+const NotificationContext = createContext(null);
+
+const audiences = ["admin", "user"];
+
+// helper to check that something is a string with text
+const isNonEmptyString = (value) => typeof value === "string" && value.trim() !== "";
+
+export function NotificationProvider({ children }) {
+  const [notifications, setNotifications] = useState(initialNotifications);
+
+  // toasts kept separate so dismissing a toast doesn't delete notification from list
+  const [toasts, setToasts] = useState([]);
+
+  // whether the bell dropdown is open
+  const [isBellOpen, setIsBellOpen] = useState(false);
+
+  // counter for new ids, starts after biggest mock id
+  const nextId = useRef(Math.max(0, ...initialNotifications.map((n) => n.id)) + 1);
+
+  // returns one audience's notifications, newest first
+  const getNotifications = (audience) => {
+    return notifications
+      .filter((n) => n.audience === audience)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  };
+
+  // how many unread ones that audience has
+  const getUnreadCount = (audience) => {
+    return notifications.filter((n) => n.audience === audience && !n.read).length;
+  };
+
+  const addNotification = ({ audience, type, title, message }) => {
+    // check if anything is wrong
+    if (!audiences.includes(audience)) {
+      console.warn("addNotification: audience must be \"admin\" or \"user\", got:", audience);
+      return;
+    }
+    if (!isNonEmptyString(title) || !isNonEmptyString(message)) {
+      console.warn("addNotification: title and message must be non-empty strings");
+      return;
+    }
+
+    // grab new id and increase the counter
+    const id = nextId.current;
+    nextId.current += 1;
+
+    const newNotification = {
+      id,
+      audience,
+      type,
+      title,
+      message,
+      createdAt: new Date(),
+      read: false,
+    };
+
+    // put at the front of list
+    setNotifications((prev) => [newNotification, ...prev]);
+
+    // also show a toast for it with same id
+    setToasts((prev) => [...prev, { id, audience, title, message }]);
+  };
+
+  // mark a single notification as read, keep rest the same
+  const markAsRead = (id) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  // mark every notification for one audience as read
+  const markAllAsRead = (audience) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.audience === audience ? { ...n, read: true } : n))
+    );
+  };
+
+  // remove toast from screen
+  // useCallback keeps it the same function every render
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // everything components can use through useNotifications()
+  const value = {
+    notifications,
+    toasts,
+    getNotifications,
+    getUnreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    dismissToast,
+    isBellOpen,
+    setIsBellOpen,
+  };
+  
+  // toasts render once here so they work on every page
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+      <NotificationToast />
+    </NotificationContext.Provider>
+  );
+}
+
+// hook so components can just call useNotifications()
+export function useNotifications() {
+  const context = useContext(NotificationContext);
+
+  // if this is null the component isn't inside <NotificationProvider>
+  if (context === null) {
+    throw new Error("useNotifications must be used inside a <NotificationProvider>");
+  }
+
+  return context;
+}
