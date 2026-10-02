@@ -1,5 +1,6 @@
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { initialNotifications } from "../data/mockData";
+import NotificationToast from "../components/NotificationToast";
 
 // context, starts as null so hook can tell if there's no provider
 const NotificationContext = createContext(null);
@@ -78,9 +79,10 @@ export function NotificationProvider({ children }) {
   };
 
   // remove toast from screen
-  const dismissToast = (id) => {
+  // useCallback keeps it the same function every render
+  const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
 
   // everything components can use through useNotifications()
   const value = {
@@ -96,7 +98,13 @@ export function NotificationProvider({ children }) {
     setIsBellOpen,
   };
   
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  // toasts render once here so they work on every page
+  return (
+    <NotificationContext.Provider value={value}>
+      {children}
+      <NotificationToast />
+    </NotificationContext.Provider>
+  );
 }
 
 // hook so components can just call useNotifications()

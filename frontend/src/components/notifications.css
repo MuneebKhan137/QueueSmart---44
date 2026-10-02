@@ -188,6 +188,72 @@
   color: #6b7280;
 }
 
+/* toasts fixed right under the bell */
+.notif-toast-stack {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+/* toasts look like items from dropdown */
+.notif-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #000;
+  pointer-events: auto;
+  transform-origin: top right;
+  animation: notif-toast-in 200ms ease-out;
+}
+
+/* toast text takes free space */
+.notif-toast .notif-text {
+  flex: 1;
+}
+
+/* makes it so it looks like it drops out the bell */
+@keyframes notif-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.notif-toast-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.notif-toast-close:hover {
+  background: #f3f4f6;
+  color: #000;
+}
+
 /* text only screen readers hear */
 .notif-sr-only {
   position: absolute;
