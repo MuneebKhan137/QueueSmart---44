@@ -15,6 +15,9 @@ export function NotificationProvider({ children }) {
   // toasts kept separate so dismissing a toast doesn't delete notification from list
   const [toasts, setToasts] = useState([]);
 
+  // whether the bell dropdown is open
+  const [isBellOpen, setIsBellOpen] = useState(false);
+
   // counter for new ids, starts after biggest mock id
   const nextId = useRef(Math.max(0, ...initialNotifications.map((n) => n.id)) + 1);
 
@@ -89,6 +92,8 @@ export function NotificationProvider({ children }) {
     markAsRead,
     markAllAsRead,
     dismissToast,
+    isBellOpen,
+    setIsBellOpen,
   };
   
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
