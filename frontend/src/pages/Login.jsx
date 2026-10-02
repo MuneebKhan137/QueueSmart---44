@@ -1,5 +1,7 @@
+import "./auth.css";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Lock, Mail, Eye, EyeOff, ArrowRight, Info } from "lucide-react";
 import { validateEmail } from "../validation";
 
 export default function Login() {
@@ -8,6 +10,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validate = (values) => ({
     email: validateEmail(values.email),
@@ -51,50 +54,67 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container">
-      <h1>Login</h1>
+  <div className="auth-page">
+    <div className="auth-card">
+      <div className="auth-tabs">
+        <Link to="/login" className="auth-tab active">Sign in</Link>
+        <Link to="/register" className="auth-tab">Create account</Link>
+      </div>
 
+      <div className="auth-badge"><Lock size={18} /></div>
+      <h1 className="auth-title">Welcome. Let's get you in line.</h1>
+      
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            value={form.email}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            aria-invalid={!!errors.email}
-          />
-          {errors.email && <span className="error" role="alert">{errors.email}</span>}
+          <label htmlFor="email">Email address <span className="required">*</span></label>
+          <div className="input-wrap">
+            <Mail className="icon-left" size={16} />
+            <input
+              id="email" name="email" type="email" autoComplete="email"
+              placeholder="you@example.com"
+              value={form.email} onChange={handleChange} onBlur={handleBlur}
+              aria-invalid={!!errors.email}
+            />
+          </div>
+          {errors.email && <p className="error" role="alert">{errors.email}</p>}
         </div>
 
         <div className="field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            value={form.password}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            aria-invalid={!!errors.password}
-          />
-          {errors.password && <span className="error" role="alert">{errors.password}</span>}
+          <label htmlFor="password">Password <span className="required">*</span></label>
+          <div className="input-wrap">
+            <Lock className="icon-left" size={16} />
+            <input
+              id="password" name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={form.password} onChange={handleChange} onBlur={handleBlur}
+              aria-invalid={!!errors.password}
+            />
+            <button
+              type="button" className="toggle-visibility"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {errors.password && <p className="error" role="alert">{errors.password}</p>}
         </div>
 
         {submitError && <p className="error" role="alert">{submitError}</p>}
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
+        <button type="submit" className="auth-submit" disabled={loading}>
+          <span>{loading ? "Signing in..." : "Sign in & continue"}</span>
+          <ArrowRight size={16} />
         </button>
       </form>
 
-      <p>
-        Don't have an account? <Link to="/register">Register</Link>
-      </p>
+      <div className="auth-notice">
+        <Info size={14} />
+        <span>This is a front-end demo. No account details are saved or sent to a server.</span>
+      </div>
     </div>
-  );
+  </div>
+);
 }
