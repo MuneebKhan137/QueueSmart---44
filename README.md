@@ -1,6 +1,6 @@
-# QueueSmart---44
+# QueueSmart---42
 
-QueueSmart Application (Group 44). 
+QueueSmart Application (Group 42). 
 
 ## Requirements
 
@@ -10,7 +10,7 @@ QueueSmart Application (Group 44).
 ## Getting started
 
 (bash)
-git clone https://github.com/marujpree/QueueSmart---44.git
+git clone https://github.com/marujpree/QueueSmart-42.git
 cd QueueSmart---44/frontend
 npm install
 npm run dev
