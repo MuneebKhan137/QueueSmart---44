@@ -5,7 +5,7 @@
 //  - Expected duration in minutes (required)
 //  - Priority: low / medium / high
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import AdminShell from "../components/AdminShell";
 import { useServices } from "../context/ServiceContext";
 import { useNotifications } from "../context/NotificationContext";
 import ServiceForm from "../components/ServiceForm";
@@ -70,102 +70,100 @@ export default function ServiceManagement() {
   const editingService = mode === "edit" ? getServiceById(editingId) : null;
 
   return (
-    <div className="svc-page">
-      <h1 className="svc-title">Service Management</h1>
-
-      {/* same sub nav links as admin dashboard */}
-      <div className="svc-subnav">
-        <Link to="/admin">Overview</Link>
-        <Link to="/admin/services">Service Management</Link>
-        <Link to="/admin/queues">Queue Management</Link>
-      </div>
-
-      {mode === "list" ? (
-        <>
-          {/* success banner after save */}
-          {banner && (
-            <div className="svc-banner" role="status">
-              <span>{banner}</span>
-              <button
-                type="button"
-                className="svc-banner-close"
-                aria-label="Dismiss message"
-                onClick={() => setBanner(null)}
-              >
-                &times;
-              </button>
-            </div>
-          )}
-
-          <div className="svc-toolbar">
-            <p className="svc-subtitle">Create and edit the services students can queue for.</p>
-            <button type="button" className="svc-button" onClick={startCreate}>
-              + New service
-            </button>
-          </div>
-
-          {services.length === 0 ? (
-            <p className="svc-empty">No services yet. Click &quot;+ New service&quot; to add one.</p>
+    <AdminShell
+          title="Service Management"
+          subtitle="Create and edit the services students can queue for."
+        >
+          {mode === "list" ? (
+            <>
+              {/* success banner after save */}
+              {banner && (
+                <div className="qs-admin-feedback" role="status">
+                  <span>{banner}</span>
+                  <button
+                    type="button"
+                    className="qs-admin-dismiss"
+                    aria-label="Dismiss message"
+                    onClick={() => setBanner(null)}
+                  >
+                    &times;
+                  </button>
+                </div>
+              )}
+    
+              <div className="qs-admin-toolbar">
+                <h2 className="qs-h2">Your services</h2>
+                <button type="button" className="qs-btn qs-btn-small" onClick={startCreate}>
+                  + New service
+                </button>
+              </div>
+    
+              {services.length === 0 ? (
+                <p className="qs-card qs-pad qs-admin-empty">No services yet. Click &quot;+ New service&quot; to add one.</p>
+              ) : (
+                // sideways scroll on table
+                <div className="qs-card qs-pad">
+                  <div className="qs-admin-table-wrap" role="region" aria-label="Services" tabIndex={0}>
+                    <table className="qs-table qs-admin-service-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Service</th>
+                          <th scope="col">Duration</th>
+                          <th scope="col">Priority</th>
+                          <th scope="col">Status</th>
+                          <th scope="col">Queue</th>
+                          <th scope="col">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {services.map((s) => (
+                          <tr key={s.id}>
+                            <td>
+                              <span className="qs-admin-name">{s.name}</span>
+                              {/* title shows in full on hover */}
+                              <span className="qs-admin-desc" title={s.description}>
+                                {s.description}
+                              </span>
+                            </td>
+                            <td>{s.durationMinutes} min</td>
+                            <td><span className="qs-pill">{s.priority}</span></td>
+                            <td><span className={`qs-pill${s.isOpen ? " ok" : ""}`}>{s.isOpen ? "Open" : "Closed"}</span></td>
+                            <td>{getQueueLength(s.id)}</td>
+                            <td>
+                              <button type="button" className="qs-btn qs-btn-small" onClick={() => startEdit(s.id)}>
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
-            // sideways scroll on table
-            <div className="svc-table-wrap">
-              <table className="svc-table">
-                <thead>
-                  <tr>
-                    <th>Service</th>
-                    <th>Duration</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Queue</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {services.map((s) => (
-                    <tr key={s.id}>
-                      <td>
-                        <span className="svc-name">{s.name}</span>
-                        {/* title shows in full on hover */}
-                        <span className="svc-desc" title={s.description}>
-                          {s.description}
-                        </span>
-                      </td>
-                      <td>{s.durationMinutes} min</td>
-                      <td>{s.priority}</td>
-                      <td>{s.isOpen ? "Open" : "Closed"}</td>
-                      <td>{getQueueLength(s.id)}</td>
-                      <td>
-                        <button type="button" className="svc-button" onClick={() => startEdit(s.id)}>
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            mode === "edit" && !editingService ? (
+              // edit service not found case
+              <div className="qs-card qs-pad">
+                <p>That service could not be found.</p>
+                <button type="button" className="qs-btn qs-btn-small" onClick={backToList}>
+                  Back
+                </button>
+              </div>
+            ) : (
+              // fresh form each time
+              <section className="qs-card qs-pad qs-admin-form" aria-label={mode === "create" ? "Create service" : "Edit service"}>
+                <ServiceForm
+                  key={editingId ?? "new"}
+                  service={editingService}
+                  existingServices={services}
+                  onSave={handleSave}
+                  onCancel={backToList}
+                />
+              </section>
+            )
           )}
-        </>
-      ) : (
-        mode === "edit" && !editingService ? (
-          // edit service not found case
-          <div className="svc-placeholder">
-            <p>That service could not be found.</p>
-            <button type="button" className="svc-button" onClick={backToList}>
-              Back
-            </button>
-          </div>
-        ) : (
-          // fresh form each time
-          <ServiceForm
-            key={editingId ?? "new"}
-            service={editingService}
-            existingServices={services}
-            onSave={handleSave}
-            onCancel={backToList}
-          />
-        )
-      )}
-    </div>
+        </AdminShell>
   );
 }
