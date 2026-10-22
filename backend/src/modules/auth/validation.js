@@ -1,5 +1,7 @@
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// letters (any language), spaces, hyphens, apostrophes and periods
+const NAME_RE = /^\p{L}[\p{L}\p{M} '.-]*$/u;
 const PHONE_RE = /^\+?[\d\s\-().]+$/;
 
 const LIMITS = { emailMax: 254, nameMax: 50, phoneMax: 20, phoneMinDigits: 7, phoneMaxDigits: 15, passwordMin: 8, passwordMax: 72 };
@@ -30,6 +32,7 @@ const validateName = (name, label = "Name") => {
   const value = name.trim();
   if (!value) return `${label} is required.`;
   if (value.length > LIMITS.nameMax) return `${label} must be ${LIMITS.nameMax} characters or fewer.`;
+  if (!NAME_RE.test(value)) return `${label} can only contain letters, spaces, hyphens and apostrophes.`;
   return "";
 };
 

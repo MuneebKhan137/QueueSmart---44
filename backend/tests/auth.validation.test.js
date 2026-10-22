@@ -69,8 +69,12 @@ describe("validateName", () => {
     expect(validateName("x".repeat(51), "Last name")).toMatch(/50/);
   });
 
-  test("accepts a normal name", () => {
-    expect(validateName("Santiago", "First name")).toBe("");
+  test.each(["John3", "1234", "Jo@n", "Bob_", "-Anna", "<b>x</b>"])("rejects %s", (value) => {
+    expect(validateName(value, "First name")).toMatch(/can only contain letters/);
+  });
+
+  test.each(["Santiago", "Mary-Jane", "O'Brien", "José", "Anne Marie", "St. John", "李"])("accepts %s", (value) => {
+    expect(validateName(value, "First name")).toBe("");
   });
 });
 
