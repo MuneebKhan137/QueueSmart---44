@@ -84,6 +84,58 @@ export function NotificationProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // how to use helpers:
+  //   import { useNotifications } from "../context/NotificationContext";
+  //   const { notifyNewSignup } = useNotifications();
+  //   notifyNewSignup(email);
+  //   notifyQueuePosition(serviceName, position);
+  //   notifyStatusChange(serviceName, status);
+
+  // new user notification
+  const notifyNewSignup = (email) => {
+    addNotification({
+      audience: "admin",
+      type: "signup",
+      title: "New user signed up",
+      message: `${email} just created an account.`,
+    });
+  };
+
+  // spot change notification
+  const notifyQueuePosition = (serviceName, position) => {
+    const isNext = position === 1;
+    addNotification({
+      audience: "user",
+      type: "queue_update",
+      title: isNext ? "You're next" : "Queue update",
+      message: isNext
+        ? `You're #1 in line for ${serviceName}.`
+        : `You're now #${position} in line for ${serviceName}.`,
+    });
+  };
+
+  // status change notification
+  const notifyStatusChange = (serviceName, status) => {
+    if (status === "almost ready") {
+      addNotification({
+        audience: "user",
+        type: "status_change",
+        title: "Almost your turn",
+        message: `Head over to ${serviceName}, you're almost up.`,
+      });
+    } else if (status === "served") {
+      addNotification({
+        audience: "user",
+        type: "status_change",
+        title: "You've been served",
+        message: `Thanks for visiting ${serviceName}.`,
+      });
+    } else {
+      // warn in case of typo
+      console.warn("notifyStatusChange: status must be \"almost ready\" or \"served\", got:", status);
+    }
+  };
+
   // everything components can use through useNotifications()
   const value = {
     notifications,
@@ -96,6 +148,9 @@ export function NotificationProvider({ children }) {
     dismissToast,
     isBellOpen,
     setIsBellOpen,
+    notifyNewSignup,
+    notifyQueuePosition,
+    notifyStatusChange,
   };
   
   // toasts render once here so they work on every page

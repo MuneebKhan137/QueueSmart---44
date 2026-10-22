@@ -1,0 +1,48 @@
+/*Admin additions to the shared QueueSmart styles in user.css. */
+.qs-admin .qs-admin-logo { color: var(--ink); text-decoration: none; font-size: 1.35rem; }
+.qs-admin .qs-admin-content { padding-bottom: 3rem; }
+.qs-admin button, .qs-admin input, .qs-admin select, .qs-admin textarea { font-family: inherit; }
+.qs-admin :is(a, button, input, select, textarea):focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+.qs-admin .qs-admin-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; }
+.qs-admin .qs-admin-stat { display: flex; flex-direction: column; gap: .5rem; }
+.qs-admin .qs-admin-stat span { color: var(--muted); font-size: .85rem; }
+.qs-admin .qs-admin-stat strong { font-size: 2rem; line-height: 1.1; letter-spacing: -.03em; }
+.qs-admin .qs-admin-stat:first-child { background: var(--red-tint); }
+.qs-admin .qs-admin-stat:first-child strong { color: var(--red); }
+.qs-admin .qs-admin-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.qs-admin .qs-admin-toolbar .qs-h2 { margin: 0; }
+.qs-admin .qs-admin-toolbar .qs-muted { flex: 1 1 220px; }
+.qs-admin .qs-admin-table-wrap { overflow-x: auto; }
+.qs-admin .qs-table { font-size: .9rem; }
+.qs-admin .qs-table th { white-space: nowrap; }
+.qs-admin .qs-table td { vertical-align: middle; overflow-wrap: anywhere; }
+.qs-admin .qs-table .qs-btn { white-space: nowrap; }
+.qs-admin .qs-pill { display: inline-block; white-space: nowrap; }
+.qs-admin .qs-admin-name { display: block; font-weight: 650; }
+.qs-admin .qs-admin-desc { display: block; max-width: 26rem; margin-top: .35rem; color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
+.qs-admin .qs-admin-actions { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.qs-admin .qs-admin-actions .qs-btn { padding: .4rem .65rem; }
+.qs-admin .qs-admin-feedback { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .85rem 1rem; margin-bottom: 1.25rem; border: 1px solid #c6e3d1; border-radius: 8px; background: #e6f3ec; color: var(--green); }
+.qs-admin .qs-admin-dismiss { padding: .25rem .5rem; border: 0; border-radius: 4px; background: transparent; color: inherit; font-size: 1.3rem; cursor: pointer; }
+.qs-admin .qs-admin-selector { flex: 1 1 240px; max-width: 420px; }
+.qs-admin .qs-admin-empty { padding: 1.5rem 0; color: var(--muted); margin: 0; }
+.qs-admin .qs-admin-queue-table { min-width: 760px; }
+.qs-admin .qs-admin-service-table { min-width: 620px; }
+/* Keep the existing ServiceForm markup and validation. Scope its theme here. */
+.qs-admin .qs-admin-form form { margin: 0; max-width: none; background: transparent; color: var(--ink); }
+.qs-admin .qs-admin-form :is(h2, h3) { color: var(--ink); letter-spacing: -.02em; }
+.qs-admin .qs-admin-form label { display: block; margin-bottom: .4rem; color: var(--ink); font-size: .85rem; font-weight: 600; }
+.qs-admin .qs-admin-form :is(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), select, textarea) { box-sizing: border-box; width: 100%; padding: .75rem; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font-size: 1rem; }
+.qs-admin .qs-admin-form textarea { min-height: 110px; resize: vertical; }
+.qs-admin .qs-admin-form :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--red); }
+.qs-admin .qs-admin-form :is(button, input[type="submit"], input[type="button"]) { padding: .7rem 1.4rem; border: 1px solid var(--red); border-radius: 8px; background: var(--red); color: #fff; font-size: .9rem; font-weight: 700; cursor: pointer; }
+.qs-admin .qs-admin-form :is(button, input[type="submit"], input[type="button"]):hover { background: var(--red-dark); }
+.qs-admin .qs-admin-form button[type="button"] { background: #fff; color: var(--red); }
+.qs-admin .qs-admin-form button[type="button"]:hover { background: var(--red-tint); }
+.qs-admin .qs-admin-form :is(button, input)[disabled] { opacity: .5; cursor: not-allowed; }
+@media (max-width: 600px) {
+  .qs-admin .qs-admin-stats { grid-template-columns: 1fr; gap: .75rem; }
+  .qs-admin .qs-pad { padding: 1rem; }
+  .qs-admin .qs-admin-selector { max-width: none; }
+  .qs-admin .qs-tagline { font-size: .7rem; }
+}

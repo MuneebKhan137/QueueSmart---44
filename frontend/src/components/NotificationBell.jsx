@@ -25,7 +25,6 @@ export default function NotificationBell() {
     getUnreadCount,
     markAsRead,
     markAllAsRead,
-    addNotification,
     isBellOpen: isOpen,
     setIsBellOpen: setIsOpen,
   } = useNotifications();
