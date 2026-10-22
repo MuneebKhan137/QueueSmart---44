@@ -1,31 +1,48 @@
 import "./auth.css";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UserPlus, Mail, Lock, Eye, EyeOff, ArrowRight, Info } from "lucide-react";
-import { validateEmail, validatePassword, validateConfirm } from "../validation";
+import { UserPlus, User, Phone, Mail, Lock, Eye, EyeOff, ArrowRight, Info } from "lucide-react";
+import { validateEmail, validatePassword, validateConfirm, validateName, validatePhone } from "../validation";
+import { apiPost } from "../api";
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", password: "", confirm: "" });
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const validate = (values) => ({
+    firstName: validateName(values.firstName, "First name"),
+    lastName: validateName(values.lastName, "Last name"),
+    phone: validatePhone(values.phone),
     email: validateEmail(values.email),
     password: validatePassword(values.password),
     confirm: validateConfirm(values.password, values.confirm),
   });
 
+  // fields the user has already left once, these re-validate on every keystroke
+  const [touched, setTouched] = useState({});
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-    if (errors[name]) setErrors((er) => ({ ...er, [name]: "" }));
+    const next = { ...form, [name]: value };
+    setForm(next);
+
+    const fresh = validate(next);
+    setErrors((er) => {
+      const updated = { ...er };
+      if (touched[name]) updated[name] = fresh[name];
+      // confirm depends on password, so keep it in sync while typing
+      if (name === "password" && touched.confirm) updated.confirm = fresh.confirm;
+      return updated;
+    });
   };
 
   const handleBlur = (e) => {
     const { name } = e.target;
+    setTouched((t) => ({ ...t, [name]: true }));
     setErrors((er) => ({ ...er, [name]: validate(form)[name] }));
   };
 
@@ -35,19 +52,21 @@ export default function Register() {
 
     const errs = validate(form);
     setErrors(errs);
+    setTouched(Object.fromEntries(Object.keys(form).map((key) => [key, true])));
     if (Object.values(errs).some(Boolean)) return;
 
     setLoading(true);
     try {
-      // TODO: replace with the real backend call once endpoints are confirmed
-      // const res = await fetch("/api/auth/register", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ email: form.email.trim(), password: form.password }),
-      // });
-      // if (!res.ok) throw new Error("Could not create account. Email may already be in use.");
+      await apiPost("/auth/register", {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        password: form.password,
+      });
       navigate("/login");
     } catch (err) {
+      if (err.fields) setErrors((er) => ({ ...er, ...err.fields }));
       setSubmitError(err.message);
     } finally {
       setLoading(false);
@@ -68,6 +87,32 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="field">
+            <label htmlFor="firstName">First name <span className="required">*</span></label>
+            <div className="input-wrap">
+              <User className="icon-left" size={16} />
+              <input
+                id="firstName" name="firstName" type="text" autoComplete="given-name" placeholder="First name"
+                value={form.firstName} onChange={handleChange} onBlur={handleBlur}
+                aria-invalid={!!errors.firstName}
+              />
+            </div>
+            {errors.firstName && <p className="error" role="alert">{errors.firstName}</p>}
+          </div>
+
+          <div className="field">
+            <label htmlFor="lastName">Last name <span className="required">*</span></label>
+            <div className="input-wrap">
+              <User className="icon-left" size={16} />
+              <input
+                id="lastName" name="lastName" type="text" autoComplete="family-name" placeholder="Last name"
+                value={form.lastName} onChange={handleChange} onBlur={handleBlur}
+                aria-invalid={!!errors.lastName}
+              />
+            </div>
+            {errors.lastName && <p className="error" role="alert">{errors.lastName}</p>}
+          </div>
+
+          <div className="field">
             <label htmlFor="email">Email address <span className="required">*</span></label>
             <div className="input-wrap">
               <Mail className="icon-left" size={16} />
@@ -80,6 +125,19 @@ export default function Register() {
             </div>
             <p className="hint">Your email is your username.</p>
             {errors.email && <p className="error" role="alert">{errors.email}</p>}
+          </div>
+
+          <div className="field">
+            <label htmlFor="phone">Phone number <span className="hint">(optional)</span></label>
+            <div className="input-wrap">
+              <Phone className="icon-left" size={16} />
+              <input
+                id="phone" name="phone" type="tel" autoComplete="tel" placeholder="(713) 555-1234"
+                value={form.phone} onChange={handleChange} onBlur={handleBlur}
+                aria-invalid={!!errors.phone}
+              />
+            </div>
+            {errors.phone && <p className="error" role="alert">{errors.phone}</p>}
           </div>
 
           <div className="field">
@@ -132,7 +190,7 @@ export default function Register() {
 
         <div className="auth-notice">
           <Info size={14} />
-          <span>This is a front-end demo. No account details are saved or sent to a server.</span>
+          <span>New accounts are regular user accounts. Data is kept in server memory and resets on restart.</span>
         </div>
       </div>
     </div>
