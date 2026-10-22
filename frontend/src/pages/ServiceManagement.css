@@ -163,11 +163,11 @@
 
 /* red border on fields with error */
 .svc-field [aria-invalid="true"] {
-  border-color: #c62828;
+  border-color: var(--danger);
 }
 
 .svc-required {
-  color: #c62828;
+  color: var(--danger);
 }
 
 /* character counter */
@@ -187,7 +187,7 @@
   min-height: 1.2em;
   margin: 4px 0 0;
   font-size: 13px;
-  color: #c62828;
+  color: var(--danger);
 }
 
 /* cancel and save */

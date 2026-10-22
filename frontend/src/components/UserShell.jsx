@@ -18,7 +18,6 @@ export default function UserShell({ eyebrow, title, subtitle, children }) {
       <header className="qs-header">
         <div className="qs-wrap qs-header-row">
           <Logo />
-          <span className="qs-tagline">Your time, better spent.</span>
           <NotificationBell />
         </div>
       </header>

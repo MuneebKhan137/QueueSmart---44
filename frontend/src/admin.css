@@ -1,5 +1,5 @@
 /*Admin additions to the shared QueueSmart styles in user.css. */
-.qs-admin .qs-admin-logo { color: var(--ink); text-decoration: none; font-size: 1.35rem; }
+.qs-admin .qs-admin-logo { color: var(--ink); text-decoration: none; }
 .qs-admin .qs-admin-content { padding-bottom: 3rem; }
 .qs-admin button, .qs-admin input, .qs-admin select, .qs-admin textarea { font-family: inherit; }
 .qs-admin :is(a, button, input, select, textarea):focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }

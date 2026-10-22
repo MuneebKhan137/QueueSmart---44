@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-// queuesmart wordmark: three leaning bars + name with a red period
+// queuesmart wordmark: three leaning bars + name
 export default function Logo({ size = 26 }) {
   return (
     <span className="logo" style={{ fontSize: size }}>
@@ -11,7 +11,7 @@ export default function Logo({ size = 26 }) {
         </g>
       </svg>
       <span className="logo-word">
-        <b>queue</b>smart<i>.</i>
+        <b>queue</b>smart
       </span>
     </span>
   );
