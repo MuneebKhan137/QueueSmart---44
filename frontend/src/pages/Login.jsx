@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Info } from "lucide-react";
 import { validateEmail } from "../validation";
+import { apiPost } from "../api";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -38,15 +39,11 @@ export default function Login() {
 
     setLoading(true);
     try {
-      // TODO: replace with the real backend call once endpoints are confirmed
-      // const res = await fetch("/api/auth/login", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ email: form.email.trim(), password: form.password }),
-      // });
-      // if (!res.ok) throw new Error("Invalid email or password.");
-      navigate("/dashboard"); // adjust to your real route
+      const { user } = await apiPost("/auth/login", { email: form.email.trim(), password: form.password });
+      localStorage.setItem("queuesmart.user", JSON.stringify(user));
+      navigate(user.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
+      if (err.fields) setErrors((er) => ({ ...er, ...err.fields }));
       setSubmitError(err.message);
     } finally {
       setLoading(false);
@@ -112,7 +109,7 @@ export default function Login() {
 
       <div className="auth-notice">
         <Info size={14} />
-        <span>This is a front-end demo. No account details are saved or sent to a server.</span>
+        <span>Demo accounts: admin@queuesmart.com / Admin1234 or demo.student@example.com / Password1.</span>
       </div>
     </div>
   </div>

@@ -20,3 +20,21 @@ export function validateConfirm(password, confirm) {
   if (password !== confirm) return "Passwords do not match.";
   return "";
 }
+
+export function validateName(name, label) {
+  const value = name.trim();
+  if (!value) return `${label} is required.`;
+  if (value.length > 50) return `${label} must be 50 characters or fewer.`;
+  if (!/^\p{L}[\p{L}\p{M} '.-]*$/u.test(value)) return `${label} can only contain letters, spaces, hyphens and apostrophes.`;
+  return "";
+}
+
+// phone is optional
+export function validatePhone(phone) {
+  const value = phone.trim();
+  if (!value) return "";
+  if (value.length > 20) return "Phone must be 20 characters or fewer.";
+  const digits = value.replace(/\D/g, "").length;
+  if (!/^\+?[\d\s\-().]+$/.test(value) || digits < 7 || digits > 15) return "Enter a valid phone number.";
+  return "";
+}

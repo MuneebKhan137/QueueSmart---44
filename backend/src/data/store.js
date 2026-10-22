@@ -9,14 +9,15 @@ const todayAt = (time) => {
   return date.toISOString();
 };
 
+// demo logins: admin@queuesmart.com / Admin1234, everyone else / Password1
 const seedUsers = [
-  { id: 1, name: "Admin", email: "admin@queuesmart.com", role: "admin" },
+  { id: 1, name: "Admin", email: "admin@queuesmart.com", role: "admin", password: "Admin1234" },
   { id: 2, name: "Aqeel Somani", email: "aqeel.somani@example.com", role: "user" },
   { id: 3, name: "Diego Cepeda", email: "diego.cepeda@example.com", role: "user" },
   { id: 4, name: "Muneeb Khan", email: "muneeb.khan@example.com", role: "user" },
   { id: 5, name: "Santiago Reyes", email: "santiago.reyes@example.com", role: "user" },
   { id: 6, name: "Demo Student", email: "demo.student@example.com", role: "user" },
-];
+].map((user) => ({ password: "Password1", ...user }));
 
 const seedServices = [
   {
