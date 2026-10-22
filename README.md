@@ -71,3 +71,39 @@ backend/
 ```
 
 #
+
+## Troubleshooting
+
+### Port 5173 is already in use
+
+If an old dev server is still running, `npm run dev` stops with:
+
+```
+error when starting dev server:
+Error: Port 5173 is already in use
+```
+
+Stop the old server, then start it again.
+
+Linux / macOS:
+
+```bash
+pkill -f vite
+```
+
+or free just that port:
+
+```bash
+kill $(lsof -t -i :5173)
+```
+
+Windows (PowerShell):
+
+```powershell
+netstat -ano | findstr :5173
+taskkill /PID <pid from the last column> /F
+```
+
+### Login or register says "Failed to fetch"
+
+The backend is not running. Start it with `npm start` in `backend/`.
