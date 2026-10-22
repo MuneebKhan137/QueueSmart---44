@@ -1,10 +1,7 @@
 /* user-facing screens: queuesmart look (red + warm off-white) */
 .qs {
-  --red: #d71e1e; --red-dark: #b81818; --red-tint: #fdf1ef;
-  --ink: #232323; --muted: #8a7f78; --line: #e6e0d8;
-  --bg: #f8f6f2; --panel: #f1ede7; --green: #2f7d57;
   min-height: 100vh; background: var(--bg); color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font);
 }
 .qs * { box-sizing: border-box; }
 .qs-wrap { max-width: 980px; margin: 0 auto; padding: 0 1rem; }
@@ -17,7 +14,6 @@
 .logo-mark { width: 1.1em; height: 1.2em; }
 .logo-word { font-weight: 500; letter-spacing: -.03em; }
 .logo-word b { font-weight: 800; }
-.logo-word i { color: var(--red); font-style: normal; font-weight: 800; }
 
 .qs-tabs { display: flex; gap: .4rem; flex-wrap: wrap; padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .qs-tabs a { padding: .4rem .9rem; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 500; }
