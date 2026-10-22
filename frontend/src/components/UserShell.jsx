@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { NavLink } from 'react-router-dom';
 import Logo from './Logo';
+import NotificationBell from './NotificationBell';
 import '../user.css';
 
 const tabs = [
@@ -18,6 +19,7 @@ export default function UserShell({ eyebrow, title, subtitle, children }) {
         <div className="qs-wrap qs-header-row">
           <Logo />
           <span className="qs-tagline">Your time, better spent.</span>
+          <NotificationBell />
         </div>
       </header>
 
