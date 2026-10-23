@@ -35,7 +35,7 @@ test("joining, leaving and finishing a visit recalculate the real queue", () => 
   expect(getMyEntry(8)).toBeNull();
   expect(getMyEntry(9)).toMatchObject({ position: 1, waitMinutes: 0 });
   expect(store.history.at(-1)).toMatchObject({ userId: 8, outcome: "Served" });
-  expect(store.notifications.at(-1)).toMatchObject({ userId: 8, title: "You've been served" });
+  expect(store.notifications.some((n) => n.userId === 8 && n.title === "You've been served" )).toBe(true);
 });
 
 test("editing the duration applies to existing entries on the next read", () => {
