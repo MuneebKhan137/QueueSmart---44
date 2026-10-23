@@ -1,18 +1,25 @@
-body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; background: var(--page-bg); }
+:root { --font: system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { margin: 0; font-family: var(--font); background: var(--bg); }
+button, input, select, textarea { font-family: inherit; }
 .navbar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; padding: 0.75rem 1rem; background: #1f2937; color: #fff; }
 .navbar a { color: #cbd5e1; text-decoration: none; }
 .navbar a.active { color: #fff; font-weight: 600; text-decoration: underline; }
 .container { padding: 1rem; }
 
 :root {
-  --red: #d71f1b;
-  --red-dark: #b81814;
+  /* brand */
+  --red: #d71e1e;
+  --red-dark: #b81818;
+  --red-tint: #fdf1ef;
   --red-soft: #fde8e6;
-  --page-bg: #f8f6f4;
+  --green: #2f7d57;
+  --danger: #c62828;
+  /* neutrals */
+  --ink: #232323;
+  --muted: #8a7f78;
+  --line: #e6e0d8;
+  --bg: #f8f6f2;
+  --panel: #f1ede7;
   --card-bg: #ffffff;
   --input-bg: #fcfaf8;
-  --surface: #f5f3f0;
-  --border: #e6e1dc;
-  --text: #1f1f1f;
-  --muted: #8a8580;
 }

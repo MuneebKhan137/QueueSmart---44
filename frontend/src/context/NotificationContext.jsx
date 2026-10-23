@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
-import { initialNotifications } from "../data/mockData";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { apiGet, apiPatch } from "../api";
 import NotificationToast from "../components/NotificationToast";
 
 // context, starts as null so hook can tell if there's no provider
@@ -7,11 +8,34 @@ const NotificationContext = createContext(null);
 
 const audiences = ["admin", "user"];
 
+// how often to ask the backend for new notifications
+const pollMs = 5000;
+
 // helper to check that something is a string with text
 const isNonEmptyString = (value) => typeof value === "string" && value.trim() !== "";
 
+const toClient = (n) => ({ ...n, createdAt: new Date(n.createdAt) });
+
+const toToast = ({ id, audience, title, message }) => ({ id, audience, title, message });
+
+// who is signed in
+const storedUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("queuesmart.user"));
+  } catch {
+    return null;
+  }
+};
+
 export function NotificationProvider({ children }) {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const location = useLocation();
+
+  const audience = location.pathname.startsWith("/admin") ? "admin" : "user";
+
+  const [serverNotes, setServerNotes] = useState([]);
+
+  const [localNotes, setLocalNotes] = useState([]);
+  const nextLocalId = useRef(-1);
 
   // toasts kept separate so dismissing a toast doesn't delete notification from list
   const [toasts, setToasts] = useState([]);
@@ -19,8 +43,58 @@ export function NotificationProvider({ children }) {
   // whether the bell dropdown is open
   const [isBellOpen, setIsBellOpen] = useState(false);
 
-  // counter for new ids, starts after biggest mock id
-  const nextId = useRef(Math.max(0, ...initialNotifications.map((n) => n.id)) + 1);
+  const seen = useRef({ key: null, ids: new Set() });
+
+  const requestCount = useRef(0);
+
+  const isDown = useRef(false);
+
+  const fetchNotifications = useCallback(async () => {
+    const user = storedUser();
+
+    if (audience === "admin" && user?.role !== "admin") return;
+
+    const request = ++requestCount.current;
+    // switching users starts fresh
+    const key = `${audience}:${user?.id ?? null}`;
+
+    try {
+      const data = await apiGet(`/notifications?audience=${audience}`);
+      if (request !== requestCount.current) return;
+
+      const list = data.notifications.map(toClient);
+
+      // toast only what's new since the last fetch
+      if (seen.current.key === key) {
+        const fresh = list.filter((n) => !seen.current.ids.has(n.id));
+        if (fresh.length > 0) setToasts((prev) => [...prev, ...fresh.map(toToast)]);
+      }
+      seen.current = { key, ids: new Set(list.map((n) => n.id)) };
+
+      setServerNotes(list);
+      isDown.current = false;
+    } catch (err) {
+      if (request !== requestCount.current) return;
+
+      // keep the last list we had
+      if (!isDown.current) {
+        console.warn("Couldn't load notifications, will keep trying:", err.message);
+        isDown.current = true;
+      }
+    }
+  }, [audience]);
+
+  useEffect(() => {
+    fetchNotifications();
+    const timer = setInterval(fetchNotifications, pollMs);
+
+    return () => {
+      clearInterval(timer);
+      requestCount.current += 1;
+    };
+  }, [fetchNotifications]);
+
+  const notifications = [...localNotes, ...serverNotes];
 
   // returns one audience's notifications, newest first
   const getNotifications = (audience) => {
@@ -45,9 +119,8 @@ export function NotificationProvider({ children }) {
       return;
     }
 
-    // grab new id and increase the counter
-    const id = nextId.current;
-    nextId.current += 1;
+    const id = nextLocalId.current;
+    nextLocalId.current -= 1;
 
     const newNotification = {
       id,
@@ -59,23 +132,37 @@ export function NotificationProvider({ children }) {
       read: false,
     };
 
-    // put at the front of list
-    setNotifications((prev) => [newNotification, ...prev]);
-
-    // also show a toast for it with same id
-    setToasts((prev) => [...prev, { id, audience, title, message }]);
+    setLocalNotes((prev) => [newNotification, ...prev]);
+    setToasts((prev) => [...prev, toToast(newNotification)]);
   };
 
   // mark a single notification as read, keep rest the same
-  const markAsRead = (id) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const markAsRead = async (id) => {
+    if (id < 0) {
+      setLocalNotes((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      return;
+    }
+
+    requestCount.current += 1;
+    try {
+      const { notification } = await apiPatch(`/notifications/${id}/read`);
+      setServerNotes((prev) => prev.map((n) => (n.id === id ? toClient(notification) : n)));
+    } catch (err) {
+      console.warn("Couldn't mark notification as read:", err.message);
+    }
   };
 
   // mark every notification for one audience as read
-  const markAllAsRead = (audience) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.audience === audience ? { ...n, read: true } : n))
-    );
+  const markAllAsRead = async (audience) => {
+    setLocalNotes((prev) => prev.map((n) => (n.audience === audience ? { ...n, read: true } : n)));
+
+    requestCount.current += 1;
+    try {
+      await apiPatch(`/notifications/read-all?audience=${audience}`);
+      setServerNotes((prev) => prev.map((n) => (n.audience === audience ? { ...n, read: true } : n)));
+    } catch (err) {
+      console.warn("Couldn't mark notifications as read:", err.message);
+    }
   };
 
   // remove toast from screen
@@ -84,60 +171,15 @@ export function NotificationProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // how to use helpers:
-  //   import { useNotifications } from "../context/NotificationContext";
-  //   const { notifyNewSignup } = useNotifications();
-  //   notifyNewSignup(email);
-  //   notifyQueuePosition(serviceName, position);
-  //   notifyStatusChange(serviceName, status);
-
-  // new user notification
-  const notifyNewSignup = (email) => {
-    addNotification({
-      audience: "admin",
-      type: "signup",
-      title: "New user signed up",
-      message: `${email} just created an account.`,
-    });
-  };
-
-  // spot change notification
-  const notifyQueuePosition = (serviceName, position) => {
-    const isNext = position === 1;
-    addNotification({
-      audience: "user",
-      type: "queue_update",
-      title: isNext ? "You're next" : "Queue update",
-      message: isNext
-        ? `You're #1 in line for ${serviceName}.`
-        : `You're now #${position} in line for ${serviceName}.`,
-    });
-  };
-
-  // status change notification
-  const notifyStatusChange = (serviceName, status) => {
-    if (status === "almost ready") {
-      addNotification({
-        audience: "user",
-        type: "status_change",
-        title: "Almost your turn",
-        message: `Head over to ${serviceName}, you're almost up.`,
-      });
-    } else if (status === "served") {
-      addNotification({
-        audience: "user",
-        type: "status_change",
-        title: "You've been served",
-        message: `Thanks for visiting ${serviceName}.`,
-      });
-    } else {
-      // warn in case of typo
-      console.warn("notifyStatusChange: status must be \"almost ready\" or \"served\", got:", status);
-    }
-  };
+  // the backend creates these notifications
+  // the call can be removed once that page uses the API
+  const notifyNewSignup = () => fetchNotifications();
+  const notifyQueuePosition = () => fetchNotifications();
+  const notifyStatusChange = () => fetchNotifications();
 
   // everything components can use through useNotifications()
   const value = {
+    audience,
     notifications,
     toasts,
     getNotifications,
@@ -152,7 +194,7 @@ export function NotificationProvider({ children }) {
     notifyQueuePosition,
     notifyStatusChange,
   };
-  
+
   // toasts render once here so they work on every page
   return (
     <NotificationContext.Provider value={value}>

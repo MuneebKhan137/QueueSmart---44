@@ -1,4 +1,6 @@
 import { NavLink } from "react-router-dom"; 
+import Logo from "./Logo";
+import NotificationBell from "./NotificationBell";
 import '../user.css';
 import '../admin.css';
 
@@ -7,10 +9,11 @@ export default function AdminShell({ eyebrow = 'Administration', title, subtitle
        <div className="qs qs-admin">
          <header className="qs-header">
            <div className="qs-wrap qs-header-row">
-             <NavLink to="/admin" className="logo qs-admin-logo" aria-label="QueueSmart admin overview">
-               <span className="logo-word"><b>Queue</b><i>Smart</i></span>
+             <NavLink to="/admin" className="qs-admin-logo" aria-label="QueueSmart admin overview">
+               <Logo />
              </NavLink>
              <span className="qs-tagline">Admin workspace</span>
+             <NotificationBell />
            </div>
          </header>
          <main className="qs-wrap">

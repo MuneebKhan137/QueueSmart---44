@@ -1,6 +1,12 @@
 /* notification bell + dropdown */
 
-/* wrapper pushes the bell to right edge of navbar and anchors dropdown */
+/* header row: logo + tagline on the left, bell pushed to the right */
+.qs-header-row:has(.notif-wrapper) {
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+/* wrapper pushes the bell to right edge of header and anchors dropdown */
 .notif-wrapper {
   position: relative;
   margin-left: auto;
@@ -18,19 +24,18 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #cbd5e1;
+  color: var(--ink, #232323);
   cursor: pointer;
 }
 
-/* hover and opening makes it white with a slightly lighter square behind it */
+/* hover and opening puts a soft gray square behind it */
 .notif-bell:hover,
 .notif-bell[aria-expanded="true"] {
-  color: #fff;
-  background: #374151;
+  background: var(--panel, #f1ede7);
 }
 
 .notif-bell:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--red, #d71e1e);
   outline-offset: 2px;
 }
 
@@ -190,9 +195,10 @@
 
 /* toasts fixed right under the bell */
 .notif-toast-stack {
+  --temp-nav-h: 46px;
   position: fixed;
-  top: 64px;
-  right: 16px;
+  top: calc(var(--temp-nav-h) + 74px);
+  right: calc(32px + max(0px, (100% - 1012px) / 2));
   z-index: 1100;
   display: flex;
   flex-direction: column;
@@ -201,6 +207,11 @@
   max-width: calc(100vw - 32px);
   pointer-events: none;
 }
+
+@media (max-width: 1144px) { .notif-toast-stack { --temp-nav-h: 83px; } }
+@media (max-width: 608px) { .notif-toast-stack { --temp-nav-h: 121px; } }
+@media (max-width: 448px) { .notif-toast-stack { --temp-nav-h: 158px; } }
+@media (max-width: 358px) { .notif-toast-stack { --temp-nav-h: 196px; } }
 
 /* toasts look like items from dropdown */
 .notif-toast {

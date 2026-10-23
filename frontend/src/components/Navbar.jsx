@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import NotificationBell from './NotificationBell';
+import Logo from './Logo';
 
 // Temporary nav showing every screen. Replace with role-based nav once auth exists.
 const links = [
@@ -17,11 +17,10 @@ const links = [
 export default function Navbar() {
   return (
     <nav className="navbar">
-      <strong>QueueSmart</strong>
+      <Logo size={20} />
       {links.map(([to, label]) => (
         <NavLink key={to} to={to}>{label}</NavLink>
       ))}
-      <NotificationBell />
     </nav>
   );
 }
