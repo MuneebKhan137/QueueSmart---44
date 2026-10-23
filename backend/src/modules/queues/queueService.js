@@ -3,7 +3,7 @@ const { badRequest, notFound, conflict } = require("../../utils/httpError");
 const { getService } = require("../services/service");
 const { estimateWait } = require("../waitTime/waitTimeService");
 const { addHistory } = require("../history/historyService");
-const { notifyJoined } = require("../notifications/notificationService");
+const { notifyJoined, notifyServed } = require("../notifications/notificationService");
 
 const priorities = ["low", "medium", "high"];
 const priorityRank = { high: 0, medium: 1, low: 2 };
@@ -12,7 +12,7 @@ const priorityRank = { high: 0, medium: 1, low: 2 };
 const getQueue = (serviceId) =>
   (store.queues[serviceId] || [])
     .filter((e) => e.status === "waiting")
-    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.joinedAt.localeCompare(b.joinedAt));
+    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.joinedAt.localeCompare(b.joinedAt) || a.id - b.id);
 
 const getStatus = (position) => (position <= 2 ? "almost ready" : "waiting");
 
@@ -107,4 +107,23 @@ const getQueueSummary = (serviceId) => {
   };
 };
 
-module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary };
+const getQueueDetails = (serviceId) => {
+  const service = getService(serviceId);
+  return {
+    ...getQueueSummary(service.id),
+    entries: getQueue(service.id).map(describeEntry),
+  };
+};
+
+//add the next served person controlled by admin advancing the queue
+const serveNext = (serviceId) => {
+  const service = getService(serviceId);
+  const entry = getQueue(service.id)[0];
+  if (!entry) throw conflict("No one waiting for this service.");
+  entry.status = "served";
+  entry.servedAt = new Date().toISOString();
+  addHistory({ userId: entry.userId, serviceId: service.id, serviceName: service.name, outcome: "Served" });
+  notifyServed(entry.userId, service.name);
+  return { servedEntry: entry, ...getQueueDetails(service.id) };
+};
+module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext };

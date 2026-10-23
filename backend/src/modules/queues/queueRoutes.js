@@ -1,6 +1,6 @@
 const express = require("express");
-const { requireUser } = require("../../middleware/currentUser");
-const { getMyEntry, joinQueue, leaveQueue, getQueueSummary } = require("./queueService");
+const { requireUser, requireAdmin } = require("../../middleware/currentUser");
+const { getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext } = require("./queueService");
 
 const router = express.Router();
 
@@ -19,6 +19,14 @@ router.post("/leave", requireUser, (req, res) => {
 // public so the join page can show waits before signing in
 router.get("/:serviceId/summary", (req, res) => {
   res.json(getQueueSummary(req.params.serviceId));
+});
+
+router.get("/:serviceId/entries", requireAdmin, (req, res) => {
+  res.json(getQueueDetails(req.params.serviceId));
+});
+
+router.post("/:serviceId/serve-next", requireAdmin, (req, res) => {
+  res.json(serveNext(req.params.serviceId));
 });
 
 module.exports = router;
