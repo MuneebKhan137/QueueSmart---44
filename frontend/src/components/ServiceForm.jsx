@@ -69,6 +69,10 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
     priority: isEditing ? service.priority : "medium",
   });
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [serverErrors, setServerErrors] = useState({});
+
   // fields blurred
   const [touched, setTouched] = useState({});
 
@@ -88,6 +92,8 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setServerErrors(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => key !== name)));
+    setSaveError('');
     setValues((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -97,9 +103,10 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     // stop browser from reloading page
     e.preventDefault();
+    if (saving) return;
 
     // on submit show every error at once
     setTouched({ name: true, description: true, durationMinutes: true, priority: true });
@@ -112,12 +119,23 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
     }
 
     // everything is valid
-    onSave({
-      name: values.name.trim(),
-      description: values.description.trim(),
-      durationMinutes: Number(values.durationMinutes),
-      priority: values.priority,
-    });
+    setSaving(true);
+    setSaveError('');
+    try {
+      await onSave({
+        name: values.name.trim(),
+        description: values.description.trim(),
+        durationMinutes: Number(values.durationMinutes),
+        priority: values.priority,
+      });
+    } catch (err) {
+      setSaveError(err.message);
+      setServerErrors(err.fields || {});
+      const field = fieldOrder.find(key => err.fields?.[key]);
+      if (field) fieldRefs[field].current?.focus();
+    } finally {
+      setSaving(false);
+    }
   };
 
   // links each input to its counter and error text
@@ -144,6 +162,7 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
           id="svc-name"
           name="name"
           type="text"
+          disabled={saving}
           ref={fieldRefs.name}
           value={values.name}
           onChange={handleChange}
@@ -168,6 +187,7 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
           id="svc-description"
           name="description"
           rows={4}
+          disabled={saving}
           ref={fieldRefs.description}
           value={values.description}
           onChange={handleChange}
@@ -195,6 +215,7 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
           id="svc-duration"
           name="durationMinutes"
           type="number"
+          disabled={saving}
           ref={fieldRefs.durationMinutes}
           value={values.durationMinutes}
           onChange={handleChange}
@@ -215,6 +236,7 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
         <select
           id="svc-priority"
           name="priority"
+          disabled={saving}
           ref={fieldRefs.priority}
           value={values.priority}
           onChange={handleChange}
@@ -230,13 +252,14 @@ export default function ServiceForm({ service, existingServices, onSave, onCance
         </select>
         <p id="svc-priority-error" className="svc-error">{priorityError}</p>
       </div>
-
+      
+      {saveError && <p className="svc-error" role="alert">{saveError}</p>}
       <div className="svc-form-actions">
         <button type="button" className="svc-button" onClick={onCancel}>
           Cancel
         </button>
-        <button type="submit" className="svc-button">
-          Save
+        <button type="submit" className="svc-button" disabled={saving}>
+          {saving ? "Saving…" : "Save"}
         </button>
       </div>
     </form>

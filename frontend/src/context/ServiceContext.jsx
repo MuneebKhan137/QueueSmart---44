@@ -1,81 +1,91 @@
-import { createContext, useContext, useState } from "react";
-import { initialServices, initialQueues } from "../data/mockData";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useLocation } from 'react-router-dom';
+import { initialQueues } from '../data/mockData';
+import { apiGet, apiPost, apiPatch } from '../api';
 
 // context
 const ServiceContext = createContext(null);
 
 // cleans up fields before saving
-const cleanFields = (fields) => {
-  const cleaned = { ...fields };
-  if (typeof cleaned.name === "string") cleaned.name = cleaned.name.trim();
-  if (typeof cleaned.description === "string") cleaned.description = cleaned.description.trim();
-  if (cleaned.durationMinutes !== undefined) cleaned.durationMinutes = Number(cleaned.durationMinutes);
-  return cleaned;
-};
-
 export function ServiceProvider({ children }) {
-  // the services list and the queues
-  const [services, setServices] = useState(initialServices);
-  const [queues] = useState(initialQueues);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { pathname } = useLocation();
+  // Invalidate older reads when saving so a delayed response cannot undo a save.
+  const requestVersion = useRef(0);
+  const pendingWrites = useRef(0);
 
-  // find one service
-  const getServiceById = (id) => {
-    return services.find((s) => s.id === Number(id));
-  };
+  const refreshServices = useCallback(async () => {
+    if (pendingWrites.current) return;
+    const version = ++requestVersion.current;
+    try {
+      const data = await apiGet('/services');
+      if (version === requestVersion.current) {
+        setServices(data.services);
+        setError('');
+      }
+    } catch (err) {
+      if (version === requestVersion.current) setError(err.message);
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
+    }
+  }, []);
 
-  const addService = ({ name, description, durationMinutes, priority }) => {
-    // new id is biggest id + 1
-    const nextId = Math.max(0, ...services.map((s) => s.id)) + 1;
-
-    const newService = {
-      id: nextId,
-      ...cleanFields({ name, description, durationMinutes }),
-      priority,
-      // new services start open
-      isOpen: true,
+  useEffect(() => {
+    refreshServices();
+    // Other browsers get admin changes without needing a manual reload.
+    const timer = window.setInterval(refreshServices, 5000);
+    window.addEventListener('focus', refreshServices);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshServices);
+      requestVersion.current += 1;
     };
+  }, [pathname, refreshServices]);
 
-    setServices((prev) => [...prev, newService]);
-    return newService;
+  const saveService = async (id, values) => {
+    pendingWrites.current += 1;
+    requestVersion.current += 1;
+    try {
+      const { service } = id === null
+        ? await apiPost('/services', values)
+        : await apiPatch(`/services/${id}`, values);
+      setServices(previous => previous.some(s => s.id === service.id)
+        ? previous.map(s => s.id === service.id ? service : s)
+        : [...previous, service]);
+      return service;
+    } finally {
+      pendingWrites.current -= 1;
+      requestVersion.current += 1;
+      setLoading(false);
+      // Refresh the complete list, including changes made by another admin.
+      refreshServices();
+    }
   };
 
-  // replace only the fields that were passed in
-  const updateService = (id, fields) => {
-    const cleaned = cleanFields(fields);
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, ...cleaned } : s)));
+  const getServiceById = id => services.find(s => s.id === Number(id));
+  const addService = values => saveService(null, values);
+  const updateService = (id, values) => saveService(id, values);
+  const toggleServiceOpen = async id => {
+    // Read the latest status rather than toggling an outdated browser copy.
+    const { service } = await apiGet(`/services/${id}`);
+    return updateService(id, { isOpen: !service.isOpen });
   };
+  // Queue administration is still the existing demo; this change owns services.
+  const getQueueLength = id => (initialQueues[id] || []).filter(p => p.status !== 'served').length;
 
-  // flip services between open and closed
-  const toggleServiceOpen = (id) => {
-    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, isOpen: !s.isOpen } : s)));
-  };
-
-  // people still in line
-  const getQueueLength = (serviceId) => {
-    return (queues[serviceId] || []).filter((p) => p.status !== "served").length;
-  };
-
-  const value = {
-    services,
-    queues,
-    getServiceById,
-    addService,
-    updateService,
-    toggleServiceOpen,
-    getQueueLength,
-  };
-
-  return <ServiceContext.Provider value={value}>{children}</ServiceContext.Provider>;
+  return (
+    <ServiceContext.Provider value={{ services, loading, error, refreshServices,
+      queues: initialQueues, getServiceById, addService, updateService,
+      toggleServiceOpen, getQueueLength }}>
+      {children}
+    </ServiceContext.Provider>
+  );
 }
 
-// hook
 export function useServices() {
   const context = useContext(ServiceContext);
-
-  // if null the component isn't inside <ServiceProvider>
-  if (context === null) {
-    throw new Error("useServices must be used inside a <ServiceProvider>");
-  }
-
+  if (context === null) throw new Error('useServices must be used inside a <ServiceProvider>');
   return context;
 }

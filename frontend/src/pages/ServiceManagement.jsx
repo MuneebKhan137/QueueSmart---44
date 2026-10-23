@@ -9,10 +9,11 @@ import AdminShell from "../components/AdminShell";
 import { useServices } from "../context/ServiceContext";
 import { useNotifications } from "../context/NotificationContext";
 import ServiceForm from "../components/ServiceForm";
+import ServiceLoadStatus from "../components/ServiceLoadStatus";
 import "./ServiceManagement.css";
 
 export default function ServiceManagement() {
-  const { services, getQueueLength, getServiceById, addService, updateService } = useServices();
+  const { services, loading, error, getQueueLength, getServiceById, addService, updateService } = useServices();
   const { addNotification } = useNotifications();
 
   // success message shown above table after saving
@@ -44,13 +45,13 @@ export default function ServiceManagement() {
   };
 
   // the form validates, this saves
-  const handleSave = (values) => {
+  const handleSave = async (values) => {
     const isCreating = mode === "create";
 
     if (isCreating) {
-      addService(values);
+      await addService(values);
     } else {
-      updateService(editingId, values);
+      await updateService(editingId, values);
     }
 
     // admin notification
@@ -74,6 +75,7 @@ export default function ServiceManagement() {
           title="Service Management"
           subtitle="Create and edit the services students can queue for."
         >
+          <ServiceLoadStatus />
           {mode === "list" ? (
             <>
               {/* success banner after save */}
@@ -90,15 +92,16 @@ export default function ServiceManagement() {
                   </button>
                 </div>
               )}
-    
+              
               <div className="qs-admin-toolbar">
                 <h2 className="qs-h2">Your services</h2>
-                <button type="button" className="qs-btn qs-btn-small" onClick={startCreate}>
+                <button type="button" className="qs-btn qs-btn-small" onClick={startCreate} disabled={loading || Boolean(error)}>
                   + New service
                 </button>
               </div>
-    
+              
               {services.length === 0 ? (
+                !loading && !error &&
                 <p className="qs-card qs-pad qs-admin-empty">No services yet. Click &quot;+ New service&quot; to add one.</p>
               ) : (
                 // sideways scroll on table
@@ -122,7 +125,7 @@ export default function ServiceManagement() {
                               <span className="qs-admin-name">{s.name}</span>
                               {/* title shows in full on hover */}
                               <span className="qs-admin-desc" title={s.description}>
-                                {s.description}
+                              {s.description}
                               </span>
                             </td>
                             <td>{s.durationMinutes} min</td>
