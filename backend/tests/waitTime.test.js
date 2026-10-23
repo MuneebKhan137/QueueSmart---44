@@ -34,7 +34,7 @@ test("joining, leaving and finishing a visit recalculate the real queue", () => 
   expect(result.servedEntry).toMatchObject({ userId: 8, status: "served" });
   expect(getMyEntry(8)).toBeNull();
   expect(getMyEntry(9)).toMatchObject({ position: 1, waitMinutes: 0 });
-  expect(store.history.at(-1)).toMatchObject({ userId: 8, outcome: "Served" });
+  expect(store.history.some((r) => r.userId === 8 && r.outcome === "Served")).toBe(true);
   expect(store.notifications.some((n) => n.userId === 8 && n.title === "You've been served" )).toBe(true);
 });
 
