@@ -7,13 +7,13 @@ const { notifyJoined, notifyServed, notifyAlmostReady, notifyRemoved } = require
 
 const priorities = ["low", "medium", "high"];
 const priorityRank = { high: 0, medium: 1, low: 2 };
+const orderKey = (entry) => entry.orderAt ?? Infinity;
 
 // order: high, medium, low, then first to last joined
 const getQueue = (serviceId) =>
   (store.queues[serviceId] || [])
     .filter((e) => e.status === "waiting")
-    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.joinedAt.localeCompare(b.joinedAt) || a.id - b.id);
-
+    .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || orderKey(a) - orderKey(b) || a.joinedAt.localeCompare(b.joinedAt) || a.id - b.id);
 const getStatus = (position) => (position <= 2 ? "almost ready" : "waiting");
 
 // position
@@ -79,6 +79,8 @@ const joinQueue = (userId, { serviceId, priority } = {}) => {
   if (!store.queues[service.id]) store.queues[service.id] = [];
   store.queues[service.id].push(entry);
 
+  addHistory({ userId, serviceId: service.id, serviceName: service.name, outcome: "Waiting", entryId: entry.id });
+
   const result = describeEntry(entry);
   notifyJoined(userId, service.name, result.position, result.waitMinutes);
   return result;
@@ -92,7 +94,7 @@ const leaveQueue = (userId) => {
   queue.splice(queue.indexOf(entry), 1);
 
   const service = getService(entry.serviceId);
-  addHistory({ userId, serviceId: entry.serviceId, serviceName: service.name, outcome: "Left queue" });
+  addHistory({ userId, serviceId: entry.serviceId, serviceName: service.name, outcome: "Left queue", entryId: entry.id });
   return { left: true, serviceName: service.name };
 };
 
@@ -122,7 +124,7 @@ const serveNext = (serviceId) => {
   if (!entry) throw conflict("No one waiting for this service.");
   entry.status = "served";
   entry.servedAt = new Date().toISOString();
-  addHistory({ userId: entry.userId, serviceId: service.id, serviceName: service.name, outcome: "Served" });
+  addHistory({ userId: entry.userId, serviceId: service.id, serviceName: service.name, outcome: "Served", entryId: entry.id });
   notifyServed(entry.userId, service.name);
 
   getQueue(service.id)
@@ -149,6 +151,7 @@ const removeEntry = (serviceId, entryId) => {
     serviceId: service.id,
     serviceName: service.name,
     outcome: "Removed by admin",
+    entryId: entry.id,
   });
   notifyRemoved(entry.userId, service.name);
   return getQueueDetails(service.id)
@@ -164,4 +167,28 @@ const { service, entry } = findEntry(serviceId, entryId);
 entry.priority = priority;
 return getQueueDetails(service.id)
 };
-module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext, removeEntry, setPriority };
+
+const moveEntry = (serviceId, entryId, direction) => {
+  if (direction !== "up" && direction !== "down") {
+    throw badRequest("Direction must be \"up\" or\down\".", { direction: "Direction must be \"up\" or \"down\"." });
+  }
+    const { service } = findEntry(serviceId, entryId);
+    const line = getQueue(service.id);
+    const index = line.findIndex((e) => e.id === Number(entryId));
+    const target = index + (direction === "up" ? -1 : 1);
+    if (target < 0 || target >= line.length) throw conflict ("That person is already at the end of the line.");
+
+    line.forEach((e, i ) => { e.orderAt = i; });
+
+    const entry = line[index];
+    const neighbour = line[target];
+
+    entry.priority = neighbour.priority;
+
+    const slot = entry.orderAt;
+    entry.orderAt = neighbour.orderAt;
+    neighbour.orderAt = slot;
+
+    return getQueueDetails(service.id);
+};
+module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext, removeEntry, setPriority, moveEntry };

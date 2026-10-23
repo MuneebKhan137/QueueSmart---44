@@ -1,6 +1,6 @@
 const express = require("express");
 const { requireUser, requireAdmin } = require("../../middleware/currentUser");
-const { getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext, removeEntry, setPriority } = require("./queueService");
+const { getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext, removeEntry, setPriority, moveEntry } = require("./queueService");
 
 const router = express.Router();
 
@@ -35,5 +35,9 @@ router.delete("/:serviceId/entries/:entryId", requireAdmin, (req, res) => {
 
 router.patch("/:serviceId/entries/:entryId", requireAdmin, (req, res) => {
   res.json(setPriority(req.params.serviceId, req.params.entryId, req.body.priority));
+});
+
+router.post("/:serviceId/entries/:entryId/move", requireAdmin, (req, res) => {
+  res.json(moveEntry(req.params.serviceId, req.params.entryId, req.body.direction));
 });
 module.exports = router;
