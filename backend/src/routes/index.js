@@ -15,4 +15,6 @@ router.use("/notifications", require("../modules/notifications/notificationRoute
 router.use("/queues", require("../modules/queues/queueRoutes"));
 // to do: mount admin queue router on /queues here
 
+router.use("/history", require("../modules/history/historyRoutes"));
+
 module.exports = router;

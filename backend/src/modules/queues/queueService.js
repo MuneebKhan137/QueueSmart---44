@@ -3,7 +3,7 @@ const { badRequest, notFound, conflict } = require("../../utils/httpError");
 const { getService } = require("../services/service");
 const { estimateWait } = require("../waitTime/waitTimeService");
 const { addHistory } = require("../history/historyService");
-const { notifyJoined, notifyServed } = require("../notifications/notificationService");
+const { notifyJoined, notifyServed, notifyAlmostReady } = require("../notifications/notificationService");
 
 const priorities = ["low", "medium", "high"];
 const priorityRank = { high: 0, medium: 1, low: 2 };
@@ -124,6 +124,10 @@ const serveNext = (serviceId) => {
   entry.servedAt = new Date().toISOString();
   addHistory({ userId: entry.userId, serviceId: service.id, serviceName: service.name, outcome: "Served" });
   notifyServed(entry.userId, service.name);
+
+  getQueue(service.id)
+  .slice(0, 2)
+  .forEach((next) => notifyAlmostReady(next.userId, service.name));
   return { servedEntry: entry, ...getQueueDetails(service.id) };
 };
 module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext };
