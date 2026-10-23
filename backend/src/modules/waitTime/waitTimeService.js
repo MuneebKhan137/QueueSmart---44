@@ -1,7 +1,12 @@
 // placeholder so queues work
-// keep the  name but replace inside
 
 // minutes until this position's turn
-const estimateWait = (position, durationMinutes) => (position - 1) * durationMinutes;
+const estimateWait = (position, durationMinutes) => {
+    if (!Number.isSafeInteger(position) || position < 1) {
+        throw new RangeError("Position must be a positive whole num.");
+    }
+    const peopleAhead = position - 1;
+    return peopleAhead * durationMinutes;
+};
 
 module.exports = { estimateWait };
