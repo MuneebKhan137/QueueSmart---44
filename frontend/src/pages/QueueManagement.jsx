@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminShell from '../components/AdminShell';
-import { initialQueues } from '../data/mockData';
 import { useServices } from '../context/ServiceContext';
-import { useNotifications } from '../context/NotificationContext';
+import { apiGet, apiPost, apiDelete } from '../api';
 
 // Queue Management
 // A2 requirements for this screen:
@@ -10,52 +9,38 @@ import { useNotifications } from '../context/NotificationContext';
 //  - Reorder or remove users (UI only)
 //  - Serve next user (UI simulation)
 
-export default function QueueManagement() {
-  const { notifyStatusChange, notifyQueuePosition } = useNotifications();
-  const { services } = useServices();
-  const [selectedId, setSelectedId] = useState(1);
-  const [queues, setQueues] = useState(initialQueues);
+const empty = { entries: [], waiting: 0, estimatedWaitMinutes: 0 };
 
-  const fullLine = queues[selectedId] || [];
-  const line = fullLine.filter(p => p.status !== 'served');
+export default function QueueManagement() {
+  const { services, refreshServices } = useServices();
+  const [selectedId, setSelectedId] = useState(1);
+  const [queue, setQueue] = useState(empty);
+  const [error, setError] = useState('');
+
+  const line = queue.entries;
   const service = services.find(s => s.id === selectedId);
 
-  function saveLine(newLine) {
-    const served = fullLine.filter(p => p.status === 'served');
-    setQueues({ ...queues, [selectedId]: [...newLine, ...served]});
-  }
+  useEffect(() => {
+    apiGet(`/queues/${selectedId}/entries`)
+    .then((data) => { setQueue(data); setError(''); })
+    .catch((err) => { setQueue(empty); setError(err.message); });
+  }, [selectedId]);
 
-  function removePerson(personId) {
-    saveLine(line.filter(p => p.id !== personId));
-  }
-
-  function move(index, direction) {
-    const target = index + direction;
-    if (target < 0 || target >= line.length) {
-      return;
-    }
-    const reordered = [...line];
-    const temp = reordered[index];
-    reordered[index] = reordered[target];
-    reordered[target] = temp;
-    saveLine(reordered);
-    notifyQueuePosition(service ? service.name : 'this service', target + 1);
-  }
-
-  function serveNext() {
-    if (line.length === 0) {
-      return;
-    }
-    const first = line[0];
-    setQueues({
-      ...queues,
-      [selectedId]: fullLine.map(p => p.id === first.id ? { ...p, status: 'served'} : p)
-    });
-    notifyStatusChange(service ? service.name : 'this service', 'served');
-    if (line.length > 1) {
-      notifyStatusChange(service ? service.name : 'this service', 'almost ready');
+  async function run(action) {
+    try {
+      const data = await action();
+      setQueue(data);
+      setError('');
+      refreshServices();
+    } catch (err) {
+      setError(err.message);
     }
   }
+
+  const serveNext = () => run(() => apiPost(`/queues/${selectedId}/serve-next`));
+  const removePerson = (entryId) => run (() => apiDelete(`/queues/${selectedId}/entries/${entryId}`));
+  const move = (entryId, direction) =>
+    run(() => apiPost(`/queues/${selectedId}/entries/${entryId}/move`, { direction }));
 
   return (
      <AdminShell
@@ -83,7 +68,11 @@ export default function QueueManagement() {
             </div>
     
             <h2 id="queue-heading" className="qs-h2">Current queue</h2>
-            <p className="qs-muted" aria-live="polite">{line.length} waiting for {service ? service.name : 'this service'} &middot; about {line.length * 5} min to the back of the line</p>
+            {error && <p className="qs-muted">Something went wrong: {error}</p>}
+
+            <p className="qs-muted" aria-live="polite">
+              {queue.waiting} waiting for {service ? service.name : 'this service'} &middot; about {queue.estimatedWaitMinutes} min to the back of the line
+            </p>
     
             {line.length === 0 ? (
               <p className="qs-admin-empty">No one is waiting for this service.</p>
@@ -98,19 +87,19 @@ export default function QueueManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {line.map((p, index) => (
-                      <tr key={p.id}>
-                        <td>{index + 1}</td>
-                        <td><strong className="qs-admin-name">{p.name}</strong></td>
-                        <td>{p.email}</td>
-                        <td>{p.joinedAt}</td>
-                        <td><span className="qs-pill">{p.priority}</span></td>
-                        <td><span className={`qs-pill${p.status === 'almost ready' ? ' ok' : ''}`}>{p.status}</span></td>
+                   {line.map((row, index) => (
+                      <tr key={row.entry.id}>
+                        <td>{row.position}</td>
+                        <td><strong className="qs-admin-name">{row.entry.name}</strong></td>
+                        <td>{row.entry.email}</td>
+                        <td>{new Date(row.entry.joinedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</td>
+                        <td><span className="qs-pill">{row.entry.priority}</span></td>
+                        <td><span className={`qs-pill${row.status === 'almost ready' ? ' ok' : ''}`}>{row.status}</span></td>
                         <td>
                           <div className="qs-admin-actions">
-                            <button type="button" onClick={() => move(index, -1)} disabled={index === 0} className="qs-btn qs-btn-small qs-btn-ghost" aria-label={`Move ${p.name} up`}>&uarr;</button>
-                            <button type="button" onClick={() => move(index, 1)} disabled={index === line.length - 1} className="qs-btn qs-btn-small qs-btn-ghost" aria-label={`Move ${p.name} down`}>&darr;</button>
-                            <button type="button" onClick={() => removePerson(p.id)} className="qs-btn qs-btn-small qs-btn-ghost" aria-label={`Remove ${p.name} from queue`}>Remove</button>
+                            <button type="button" onClick={() => move(row.entry.id, 'up')} disabled={index === 0} className="qs-btn qs-btn-small qs-btn-ghost" aria-label={`Move ${row.entry.name} up`}>&uarr;</button>
+                            <button type="button" onClick={() => move(row.entry.id, 'down')} disabled={index === line.length - 1} className="qs-btn qs-btn-small qs-btn-ghost" aria-label={`Move ${row.entry.name} down`}>&darr;</button>
+                            <button type="button" onClick={() => removePerson(row.entry.id)} className="qs-btn qs-btn-small qs-btn-ghost" aria-label={`Remove ${row.entry.name} from queue`}>Remove</button>
                           </div>
                         </td>
                       </tr>

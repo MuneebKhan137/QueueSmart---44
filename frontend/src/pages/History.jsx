@@ -2,15 +2,24 @@
 // A2 requirements for this screen:
 //  - List of past queues joined
 //  - Date, service name, outcome
+import { useState, useEffect } from 'react';
 import UserShell from '../components/UserShell';
-import { getHistory } from '../userQueue';
+import { apiGet } from '../api';
 
 export default function History() {
-  const visits = getHistory();
+  const [visits, setVisits] = useState([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    apiGet('/history')
+    .then((data) => { setVisits(data.history); setError(''); })
+    .catch((err) => setError(err.message));
+  }, []);
 
   return (
     <UserShell eyebrow="My visits" title="Your past visits." subtitle="Every queue you've joined, newest first.">
       <section className="qs-card qs-pad">
+         {error && <p className="qs-muted">Couldn't load your history: {error}</p>}
         {visits.length === 0 ? (
           <p className="qs-muted">No visits yet.</p>
         ) : (
