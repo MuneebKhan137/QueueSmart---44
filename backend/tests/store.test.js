@@ -43,6 +43,20 @@ describe("store", () => {
     expect(nextId("queues")).toBe(406);
   });
 
+  test("nextId doesn't hand out an id again after its item is removed", () => {
+    const id = nextId("notifications");
+    store.notifications.push({ id });
+    store.notifications.pop();
+    expect(nextId("notifications")).toBe(id + 1);
+  });
+
+  test("resetStore starts the ids over from the seed", () => {
+    nextId("users");
+    nextId("users");
+    resetStore();
+    expect(nextId("users")).toBe(7);
+  });
+
   test("nextId throws for an unknown collection", () => {
     expect(() => nextId("nope")).toThrow("Unknown collection: nope");
   });
@@ -71,6 +85,10 @@ describe("store", () => {
     Object.values(store.queues).flat().forEach((e) => {
       expect(new Date(e.joinedAt).getTime()).toBeLessThanOrEqual(now);
     });
+  });
+
+  test("seeded history uses the same outcome wording as leaveQueue", () => {
+    store.history.forEach((row) => expect(["Served", "Left queue"]).toContain(row.outcome));
   });
 
   test("every user notification has a userId", () => {

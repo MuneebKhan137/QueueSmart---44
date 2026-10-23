@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useLocation } from 'react-router-dom';
-import { initialQueues } from '../data/mockData';
 import { apiGet, apiPost, apiPatch } from '../api';
 
 // context
@@ -11,10 +10,20 @@ export function ServiceProvider({ children }) {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [queueLengths, setQueueLengths] = useState({});
   const { pathname } = useLocation();
   // Invalidate older reads when saving so a delayed response cannot undo a save.
   const requestVersion = useRef(0);
   const pendingWrites = useRef(0);
+
+  const refreshQueueLengths = useCallback(async list => {
+    try {
+      const summaries = await Promise.all(list.map(s => apiGet(`/queues/${s.id}/summary`)));
+      setQueueLengths(Object.fromEntries(summaries.map(s => [s.serviceId, s.waiting])));
+    } catch {
+      // keep the last counts
+    }
+  }, []);
 
   const refreshServices = useCallback(async () => {
     if (pendingWrites.current) return;
@@ -24,13 +33,14 @@ export function ServiceProvider({ children }) {
       if (version === requestVersion.current) {
         setServices(data.services);
         setError('');
+        refreshQueueLengths(data.services);
       }
     } catch (err) {
       if (version === requestVersion.current) setError(err.message);
     } finally {
       if (version === requestVersion.current) setLoading(false);
     }
-  }, []);
+  }, [refreshQueueLengths]);
 
   useEffect(() => {
     refreshServices();
@@ -72,12 +82,12 @@ export function ServiceProvider({ children }) {
     const { service } = await apiGet(`/services/${id}`);
     return updateService(id, { isOpen: !service.isOpen });
   };
-  // Queue administration is still the existing demo; this change owns services.
-  const getQueueLength = id => (initialQueues[id] || []).filter(p => p.status !== 'served').length;
+  // waiting count from the last refresh
+  const getQueueLength = id => queueLengths[id] ?? 0;
 
   return (
     <ServiceContext.Provider value={{ services, loading, error, refreshServices,
-      queues: initialQueues, getServiceById, addService, updateService,
+      getServiceById, addService, updateService,
       toggleServiceOpen, getQueueLength }}>
       {children}
     </ServiceContext.Provider>

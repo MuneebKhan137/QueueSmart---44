@@ -83,7 +83,7 @@ describe("joinQueue validation", () => {
   });
 
   test("non-numeric or non-positive serviceId", () => {
-    for (const serviceId of ["abc", 1.5, 0, -2, true]) {
+    for (const serviceId of ["abc", "5abc", "0x2", "1e1", " 2", "2.0", "-1", 1.5, 0, -2, true, [2]]) {
       const err = catchError(() => joinQueue(7, { serviceId }));
       expect(err.status).toBe(400);
       expect(err.fields.serviceId).toBe("Service id must be a positive integer.");
@@ -196,6 +196,21 @@ describe("getMyEntry", () => {
 });
 
 describe("leaveQueue", () => {
+  test("a new joiner never gets the id of an entry that left", () => {
+    const first = joinQueue(7, { serviceId: 1 }).entry.id;
+    leaveQueue(7);
+    const second = joinQueue(8, { serviceId: 1 }).entry.id;
+    expect(second).not.toBe(first);
+    expect(second).toBe(first + 1);
+  });
+
+  test("leaving twice in a row leaves nothing behind", () => {
+    joinQueue(7, { serviceId: 1 });
+    leaveQueue(7);
+    expect(Object.values(store.queues).flat().filter((e) => e.userId === 7)).toEqual([]);
+    expect(() => leaveQueue(7)).toThrow("You're not in a queue.");
+  });
+
   test("removes the entry and writes a Left queue history row", () => {
     const { entry } = joinQueue(7, { serviceId: 1 });
 

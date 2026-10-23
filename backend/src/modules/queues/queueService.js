@@ -1,6 +1,6 @@
 const { store, nextId } = require("../../data/store");
 const { badRequest, notFound, conflict } = require("../../utils/httpError");
-const { getServiceById } = require("../services/serviceService");
+const { getService } = require("../services/service");
 const { estimateWait } = require("../waitTime/waitTimeService");
 const { addHistory } = require("../history/historyService");
 const { notifyJoined } = require("../notifications/notificationService");
@@ -18,7 +18,7 @@ const getStatus = (position) => (position <= 2 ? "almost ready" : "waiting");
 
 // position
 const describeEntry = (entry) => {
-  const service = getServiceById(entry.serviceId);
+  const service = getService(entry.serviceId);
   const position = getQueue(entry.serviceId).indexOf(entry) + 1;
   return {
     entry,
@@ -40,9 +40,8 @@ const getMyEntry = (userId) => {
 };
 
 const isPositiveInteger = (value) =>
-  (typeof value === "number" || (typeof value === "string" && value.trim() !== "")) &&
-  Number.isInteger(Number(value)) &&
-  Number(value) > 0;
+  (typeof value === "number" && Number.isSafeInteger(value) && value > 0) ||
+  (typeof value === "string" && /^[1-9]\d*$/.test(value));
 
 const joinQueue = (userId, { serviceId, priority } = {}) => {
   const fields = {};
@@ -62,8 +61,7 @@ const joinQueue = (userId, { serviceId, priority } = {}) => {
     throw badRequest("Couldn't join the queue.", fields);
   }
 
-  const service = getServiceById(serviceId);
-  if (!service) throw notFound("Service not found.");
+  const service = getService(serviceId);
   if (!service.isOpen) throw conflict("This service is closed.");
   if (findWaitingEntry(userId)) throw conflict("You're already in a queue.");
 
@@ -93,14 +91,13 @@ const leaveQueue = (userId) => {
   const queue = store.queues[entry.serviceId];
   queue.splice(queue.indexOf(entry), 1);
 
-  const service = getServiceById(entry.serviceId);
+  const service = getService(entry.serviceId);
   addHistory({ userId, serviceId: entry.serviceId, serviceName: service.name, outcome: "Left queue" });
   return { left: true, serviceName: service.name };
 };
 
 const getQueueSummary = (serviceId) => {
-  const service = getServiceById(serviceId);
-  if (!service) throw notFound("Service not found.");
+  const service = getService(serviceId);
 
   const waiting = getQueue(service.id).length;
   return {

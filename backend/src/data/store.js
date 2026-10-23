@@ -131,9 +131,9 @@ const seedNotifications = [
 ];
 
 const seedHistory = [
-  { id: 1, userId: 6, serviceId: 3, serviceName: "ID Card Services", outcome: "served", date: daysAgo(14) },
-  { id: 2, userId: 6, serviceId: 1, serviceName: "Academic Advising", outcome: "served", date: daysAgo(7) },
-  { id: 3, userId: 6, serviceId: 4, serviceName: "Registrar", outcome: "left", date: daysAgo(3) },
+  { id: 1, userId: 6, serviceId: 3, serviceName: "ID Card Services", outcome: "Served", date: daysAgo(14) },
+  { id: 2, userId: 6, serviceId: 1, serviceName: "Academic Advising", outcome: "Served", date: daysAgo(7) },
+  { id: 3, userId: 6, serviceId: 4, serviceName: "Registrar", outcome: "Left queue", date: daysAgo(3) },
 ];
 
 const seed = {
@@ -147,10 +147,14 @@ const seed = {
 // live data
 const store = {};
 
+// last id handed out per collection
+let lastIds = {};
+
 const resetStore = () => {
   const fresh = structuredClone(seed);
   for (const key of Object.keys(store)) delete store[key];
   Object.assign(store, fresh);
+  lastIds = {};
 };
 
 const nextId = (collectionName) => {
@@ -158,7 +162,9 @@ const nextId = (collectionName) => {
   if (!collection) throw new Error(`Unknown collection: ${collectionName}`);
 
   const items = Array.isArray(collection) ? collection : Object.values(collection).flat();
-  return items.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+  const highest = items.reduce((max, item) => Math.max(max, item.id), 0);
+  lastIds[collectionName] = Math.max(highest, lastIds[collectionName] || 0) + 1;
+  return lastIds[collectionName];
 };
 
 resetStore();

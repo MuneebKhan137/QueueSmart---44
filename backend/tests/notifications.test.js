@@ -114,6 +114,13 @@ describe("listNotifications", () => {
     expect(listNotifications("user", 3)).toEqual([]);
   });
 
+  test("two created at the same moment show the newer id first", () => {
+    const a = addNotification({ ...valid, userId: 6 });
+    const b = addNotification({ ...valid, userId: 6 });
+    b.createdAt = a.createdAt;
+    expect(listNotifications("user", 6).slice(0, 2).map((n) => n.id)).toEqual([b.id, a.id]);
+  });
+
   test("a new notification comes first", () => {
     const n = addNotification({ ...valid, userId: 6 });
     expect(listNotifications("user", 6)[0].id).toBe(n.id);
