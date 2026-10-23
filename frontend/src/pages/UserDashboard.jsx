@@ -7,7 +7,8 @@ import { Link } from 'react-router-dom';
 import UserShell from '../components/UserShell';
 import ServiceLoadStatus from '../components/ServiceLoadStatus';
 import { useServices } from '../context/ServiceContext';
-import { initialNotifications, initialServices } from '../data/mockData';
+import { useNotifications } from '../context/NotificationContext';
+import { initialServices } from '../data/mockData';
 import { getEntry, queueStats, statusFor } from '../userQueue';
 
 const STATUS_TEXT = { waiting: 'Waiting', 'almost ready': 'Almost your turn', served: 'Served' };
@@ -16,7 +17,8 @@ export default function UserDashboard() {
   const entry = getEntry();
   const { services: allServices, loading, error } = useServices();
   const services = initialServices.filter((s) => s.isOpen);
-  const notes = initialNotifications.filter((n) => n.audience === 'user');
+  const { getNotifications } = useNotifications();
+  const notes = getNotifications('user');
   const unread = notes.filter((n) => !n.read).length;
 
   return (

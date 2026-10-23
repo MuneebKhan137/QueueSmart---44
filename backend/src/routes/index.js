@@ -11,6 +11,8 @@ router.use("/auth", require("../modules/auth/routes"));
 router.use("/services", require("../modules/services/routes"));
 
 router.use("/notifications", require("../modules/notifications/notificationRoutes"));
-// each module mounts its router here, uncomment yours once it exists
+
+router.use("/queues", require("../modules/queues/queueRoutes"));
+// to do: mount admin queue router on /queues here
 
 module.exports = router;

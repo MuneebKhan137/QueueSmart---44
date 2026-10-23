@@ -59,6 +59,20 @@ describe("store", () => {
     }
   });
 
+  test("each user waits in one queue at most, demo student in none", () => {
+    const waiting = Object.values(store.queues).flat().filter((e) => e.status === "waiting");
+    const userIds = waiting.map((e) => e.userId);
+    expect(new Set(userIds).size).toBe(userIds.length);
+    expect(userIds).not.toContain(6);
+  });
+
+  test("seed joinedAt times are never in the future", () => {
+    const now = Date.now();
+    Object.values(store.queues).flat().forEach((e) => {
+      expect(new Date(e.joinedAt).getTime()).toBeLessThanOrEqual(now);
+    });
+  });
+
   test("every user notification has a userId", () => {
     const userNotes = store.notifications.filter((n) => n.audience === "user");
     expect(userNotes.length).toBeGreaterThan(0);

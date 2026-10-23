@@ -11,7 +11,7 @@ import { useServices } from '../context/ServiceContext';
 //  - Quick actions (open/close queue)
 
 export default function AdminDashboard() {
-  const { services, toggleServiceOpen: toggleOpen, getQueueLength: queueLength } = useServices();
+  const { services, loading, error, toggleServiceOpen: toggleOpen, getQueueLength: queueLength } = useServices();
   
   const [actionError, setActionError] = useState('');
   const [pendingId, setPendingId] = useState(null);
