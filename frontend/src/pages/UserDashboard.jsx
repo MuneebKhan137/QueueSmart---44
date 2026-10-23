@@ -5,6 +5,8 @@
 //  - Notifications summary
 import { Link } from 'react-router-dom';
 import UserShell from '../components/UserShell';
+import ServiceLoadStatus from '../components/ServiceLoadStatus';
+import { useServices } from '../context/ServiceContext';
 import { initialNotifications, initialServices } from '../data/mockData';
 import { getEntry, queueStats, statusFor } from '../userQueue';
 
@@ -12,6 +14,7 @@ const STATUS_TEXT = { waiting: 'Waiting', 'almost ready': 'Almost your turn', se
 
 export default function UserDashboard() {
   const entry = getEntry();
+  const { services: allServices, loading, error } = useServices();
   const services = initialServices.filter((s) => s.isOpen);
   const notes = initialNotifications.filter((n) => n.audience === 'user');
   const unread = notes.filter((n) => !n.read).length;
@@ -44,6 +47,8 @@ export default function UserDashboard() {
 
           <section className="qs-card qs-pad">
             <h2 className="qs-h2">Services open today</h2>
+            <ServiceLoadStatus />
+            {!loading && !error && services.length === 0 && <p className="qs-muted">No services are open right now.</p>}
             <ul className="qs-list">
               {services.map((s) => {
                 const { waiting, waitMinutes } = queueStats(s);

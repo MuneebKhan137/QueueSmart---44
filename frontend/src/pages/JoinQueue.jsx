@@ -6,7 +6,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import UserShell from '../components/UserShell';
-import { initialServices } from '../data/mockData';
+import { useServices } from '../context/ServiceContext';
+import ServiceLoadStatus from '../components/ServiceLoadStatus';
+import { apiGet } from '../api';
 import { getEntry, joinQueue, queueStats } from '../userQueue';
 
 export default function JoinQueue() {
@@ -15,19 +17,36 @@ export default function JoinQueue() {
   const [serviceId, setServiceId] = useState(params.get('service') || '');
   const [error, setError] = useState('');
   const current = getEntry();
+  const { services, loading, error: loadError } = useServices();
+  const [joining, setJoining] = useState(false);
 
-  const openServices = initialServices.filter((s) => s.isOpen);
+  const openServices = services.filter((s) => s.isOpen);
   const service = openServices.find((s) => String(s.id) === serviceId);
   const stats = service && queueStats(service);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (joining) return;
     if (!service) {
       setError('Please choose a service to join.');
       return;
     }
-    joinQueue(service);
-    navigate('/status');
+    setJoining(true);
+    setError('');
+    try {
+      // Recheck availibility in case service is closed after join
+      const { service: latest } = await apiGet(`/services/${service.id}`);
+      if (!latest.isOpen) {
+        setError('This service is now closed. Please choose another service.');
+        return;
+      }
+      joinQueue(latest);
+      navigate('/status');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setJoining(false);
+    }
   };
 
   if (current) {
@@ -56,12 +75,15 @@ export default function JoinQueue() {
       <div className="qs-grid">
         <form className="qs-card" onSubmit={handleSubmit} noValidate>
           <div className="qs-pad">
+            <ServiceLoadStatus />
+            {!loading && !loadError && openServices.length === 0 && <p className="qs-muted">No services are open right now.</p>}
             <label className="qs-label" htmlFor="service">Service</label>
             <select
               id="service"
               className="qs-select"
               value={serviceId}
               required
+              disabled={loading || joining || Boolean(loadError)}
               aria-invalid={Boolean(error)}
               onChange={(e) => {
                 setServiceId(e.target.value);
@@ -74,10 +96,10 @@ export default function JoinQueue() {
               ))}
             </select>
             {error && <p className="qs-error" role="alert">{error}</p>}
-
+      
             {service && <p className="qs-desc">{service.description}</p>}
           </div>
-
+      
           <div className="qs-stats">
             <div>
               <strong>{stats ? stats.waiting : '–'}</strong>
@@ -88,13 +110,15 @@ export default function JoinQueue() {
               <span>Estimated wait</span>
             </div>
           </div>
-
+      
           <div className="qs-pad">
-            <button type="submit" className="qs-btn qs-btn-block">Join queue &amp; get my token →</button>
+            <button type="submit" className="qs-btn qs-btn-block" disabled={loading || joining || Boolean(loadError) || !service}>
+              {joining ? "Joining…" : "Join queue & get my token →"}
+            </button>
             <p className="qs-fine">Your spot is free. You can leave at any time.</p>
           </div>
         </form>
-
+      
         <Steps />
       </div>
     </UserShell>
