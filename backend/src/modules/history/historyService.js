@@ -8,4 +8,9 @@ const addHistory = ({ userId, serviceId, serviceName, outcome }) => {
   return row;
 };
 
-module.exports = { addHistory };
+const getHistory = (userId) =>
+  store.history
+  .filter((row) => row.userId === userId)
+  .sort((a, b) => b.date.localeCompare(a.date));
+
+module.exports = { addHistory, getHistory };
