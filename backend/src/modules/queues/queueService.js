@@ -3,7 +3,7 @@ const { badRequest, notFound, conflict } = require("../../utils/httpError");
 const { getService } = require("../services/service");
 const { estimateWait } = require("../waitTime/waitTimeService");
 const { addHistory } = require("../history/historyService");
-const { notifyJoined, notifyServed, notifyAlmostReady } = require("../notifications/notificationService");
+const { notifyJoined, notifyServed, notifyAlmostReady, notifyRemoved } = require("../notifications/notificationService");
 
 const priorities = ["low", "medium", "high"];
 const priorityRank = { high: 0, medium: 1, low: 2 };
@@ -130,4 +130,38 @@ const serveNext = (serviceId) => {
   .forEach((next) => notifyAlmostReady(next.userId, service.name));
   return { servedEntry: entry, ...getQueueDetails(service.id) };
 };
-module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext };
+
+const findEntry = (serviceId, entryId) => {
+  const service = getService(serviceId);
+  const entry = (store.queues[service.id] || []).find(
+  (e) => e.id === Number(entryId) && e.status === "waiting"
+  );
+  if (!entry) throw notFound ("That person isn't waiting in this queue.");
+  return { service, entry };
+}
+
+const removeEntry = (serviceId, entryId) => {
+  const { service, entry } = findEntry(serviceId, entryId);
+  const queue = store.queues[service.id];
+  queue.splice(queue.indexOf(entry), 1);
+  addHistory({
+    userId: entry.userId,
+    serviceId: service.id,
+    serviceName: service.name,
+    outcome: "Removed by admin",
+  });
+  notifyRemoved(entry.userId, service.name);
+  return getQueueDetails(service.id)
+};
+
+const setPriority = (serviceId, entryId, priority) => {
+  if (!priorities.includes(priority)) {
+    throw badRequest("Priority must be \"low\", \"medium\" or \"high\".", {
+      priority: "Priority must be \"low\", \"medium\" or \"high\".",
+  });
+}
+const { service, entry } = findEntry(serviceId, entryId);
+entry.priority = priority;
+return getQueueDetails(service.id)
+};
+module.exports = { getQueue, getStatus, getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext, removeEntry, setPriority };

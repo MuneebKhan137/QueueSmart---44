@@ -141,6 +141,15 @@ const notifyNewSignup = (email) =>
     message: `${email} just created an account.`,
   });
 
+const notifyRemoved = (userId, serviceName) =>
+  addNotification({
+    audience: "user",
+    userId,
+    type: "status_change",
+    title: "Removed from the queue",
+    message: `An admin removed you from the ${serviceName} queue.`,
+  });
+
 module.exports = {
   listNotifications,
   addNotification,
@@ -150,4 +159,5 @@ module.exports = {
   notifyAlmostReady,
   notifyServed,
   notifyNewSignup,
+  notifyRemoved,
 };
