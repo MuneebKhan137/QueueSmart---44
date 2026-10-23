@@ -2,13 +2,6 @@
 const minutesAgo = (mins) => new Date(Date.now() - mins * 60 * 1000).toISOString();
 const daysAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-const todayAt = (time) => {
-  const [, h, m, ampm] = time.match(/(\d+):(\d+) (AM|PM)/);
-  const date = new Date();
-  date.setHours((Number(h) % 12) + (ampm === "PM" ? 12 : 0), Number(m), 0, 0);
-  return date.toISOString();
-};
-
 // demo logins: admin@queuesmart.com / Admin1234, everyone else / Password1
 const seedUsers = [
   { id: 1, name: "Admin", email: "admin@queuesmart.com", role: "admin", password: "Admin1234" },
@@ -54,37 +47,36 @@ const seedServices = [
   },
 ];
 
-// [entry id, user id, joined at, priority, status]
-// "almost ready" is now just "waiting"
+// [entry id, user id, joined minutes ago, priority, status]
 const seedLines = {
   1: [
-    [101, 5, "1:05 PM", "medium", "waiting"],
-    [102, 4, "1:09 PM", "medium", "waiting"],
-    [103, 3, "1:14 PM", "low", "waiting"],
+    [101, 5, 95, "medium", "served"],
+    [102, 4, 80, "medium", "served"],
+    [103, 3, 40, "low", "waiting"],
   ],
   2: [
-    [201, 2, "12:58 PM", "high", "served"],
-    [202, 3, "1:02 PM", "high", "served"],
-    [203, 6, "1:07 PM", "high", "waiting"],
-    [204, 4, "1:12 PM", "medium", "waiting"],
-    [205, 5, "1:16 PM", "medium", "waiting"],
+    [201, 2, 110, "high", "served"],
+    [202, 3, 100, "high", "served"],
+    [203, 6, 75, "high", "served"],
+    [204, 4, 35, "medium", "waiting"],
+    [205, 5, 25, "medium", "waiting"],
   ],
   3: [
-    [301, 2, "1:10 PM", "low", "waiting"],
-    [302, 6, "1:18 PM", "low", "waiting"],
+    [301, 2, 70, "low", "served"],
+    [302, 6, 50, "low", "served"],
   ],
   4: [
-    [401, 4, "12:50 PM", "medium", "served"],
-    [402, 3, "12:55 PM", "medium", "waiting"],
-    [403, 2, "1:01 PM", "medium", "waiting"],
-    [404, 5, "1:06 PM", "low", "waiting"],
-    [405, 6, "1:11 PM", "medium", "waiting"],
+    [401, 4, 120, "medium", "served"],
+    [402, 3, 105, "medium", "served"],
+    [403, 2, 45, "medium", "waiting"],
+    [404, 5, 90, "low", "served"],
+    [405, 6, 60, "medium", "served"],
   ],
 };
 
 const seedQueues = {};
 for (const [serviceId, lines] of Object.entries(seedLines)) {
-  seedQueues[serviceId] = lines.map(([id, userId, joinedAt, priority, status]) => ({
+  seedQueues[serviceId] = lines.map(([id, userId, joinedMinutesAgo, priority, status]) => ({
     id,
     serviceId: Number(serviceId),
     userId,
@@ -92,7 +84,7 @@ for (const [serviceId, lines] of Object.entries(seedLines)) {
     email: seedUsers.find((user) => user.id === userId).email,
     priority,
     status,
-    joinedAt: todayAt(joinedAt),
+    joinedAt: minutesAgo(joinedMinutesAgo),
   }));
 }
 
@@ -139,9 +131,9 @@ const seedNotifications = [
 ];
 
 const seedHistory = [
-  { id: 1, userId: 6, serviceId: 3, serviceName: "ID Card Services", outcome: "served", date: daysAgo(14) },
-  { id: 2, userId: 6, serviceId: 1, serviceName: "Academic Advising", outcome: "served", date: daysAgo(7) },
-  { id: 3, userId: 6, serviceId: 4, serviceName: "Registrar", outcome: "left", date: daysAgo(3) },
+  { id: 1, userId: 6, serviceId: 3, serviceName: "ID Card Services", outcome: "Served", date: daysAgo(14) },
+  { id: 2, userId: 6, serviceId: 1, serviceName: "Academic Advising", outcome: "Served", date: daysAgo(7) },
+  { id: 3, userId: 6, serviceId: 4, serviceName: "Registrar", outcome: "Left queue", date: daysAgo(3) },
 ];
 
 const seed = {
@@ -155,10 +147,14 @@ const seed = {
 // live data
 const store = {};
 
+// last id handed out per collection
+let lastIds = {};
+
 const resetStore = () => {
   const fresh = structuredClone(seed);
   for (const key of Object.keys(store)) delete store[key];
   Object.assign(store, fresh);
+  lastIds = {};
 };
 
 const nextId = (collectionName) => {
@@ -166,7 +162,9 @@ const nextId = (collectionName) => {
   if (!collection) throw new Error(`Unknown collection: ${collectionName}`);
 
   const items = Array.isArray(collection) ? collection : Object.values(collection).flat();
-  return items.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+  const highest = items.reduce((max, item) => Math.max(max, item.id), 0);
+  lastIds[collectionName] = Math.max(highest, lastIds[collectionName] || 0) + 1;
+  return lastIds[collectionName];
 };
 
 resetStore();

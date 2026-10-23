@@ -1,6 +1,7 @@
 const { store, nextId } = require("../../data/store");
 const { badRequest, conflict, unauthorized } = require("../../utils/httpError");
 const { validateRegister, validateLogin } = require("./validation");
+const { notifyNewSignup } = require("../notifications/notificationService");
 
 // never send the password to the client
 const publicUser = ({ id, name, firstName, lastName, email, phone, role }) => ({
@@ -39,6 +40,7 @@ const register = (body) => {
     password: body.password,
   };
   store.users.push(user);
+  notifyNewSignup(user.email);
 
   return publicUser(user);
 };
