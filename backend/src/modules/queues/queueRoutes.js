@@ -1,6 +1,7 @@
 const express = require("express");
 const { requireUser, requireAdmin } = require("../../middleware/currentUser");
-const { getMyEntry, joinQueue, leaveQueue, getQueueSummary, getQueueDetails, serveNext, removeEntry, setPriority, moveEntry } = require("./queueService");
+const { getMyEntry, joinQueue, leaveQueue, getQueueSummary } = require("./queueService");
+const { getQueueDetails, serveNext, removeEntry, setPriority, moveEntry } = require("./adminQueueService");
 
 const router = express.Router();
 
