@@ -27,6 +27,18 @@ const SELECT_SERVICE = `
     return err;
   };
 
+  const assertNameIsFree = async (client, name, ignoreId = 0) => {
+    const { rows } = await client.query(
+      'SELECT 1 FROM services WHERE lower(name) = lower($1) AND id <> $2 LIMIT 1',
+      [name, ignoreId]
+    );
+    if (rows.length > 0) {
+      const error = conflict('A service with this name already exists.');
+      error.fields = { name: error.message };
+      throw error;
+    }
+  };
+
 const listServices = async () => {
   const { rows } = await query(`${SELECT_SERVICE} ORDER BY s.id`);
   return rows.map(toService);
@@ -44,6 +56,7 @@ const createService = async (body) => {
   const values = validateService(body);
   try {
     return await withTransaction(async (client) => {
+      await assertNameIsFree(client, values.name);
       const { rows } = await client.query(
         `INSERT INTO services (name, description, duration_minutes, priority)
         VALUES ($1, $2, $3, $4)
@@ -66,6 +79,7 @@ const updateService = async (id, body) => {
   const values = validateService(body, existing);
   try{
     return await withTransaction(async (client) => {
+      await assertNameIsFree(client, values.name, existing.id);
       await client.query(
         `UPDATE services SET name =$1, description = $2, duration_minutes = $3, priority =$4
         WHERE id = $5`,
