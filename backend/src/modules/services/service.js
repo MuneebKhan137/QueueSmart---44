@@ -1,28 +1,85 @@
-const { store, nextId } = require('../../data/store');
-const { notFound } = require('../../utils/httpError');
+const { query, withTransaction } = require('../../db/db');
+const { notFound, conflict } = require('../../utils/httpError');
 const { validateService } = require('./validation');
 
-const findService = id => {
-  const numericId = Number(id);
-  const service = Number.isSafeInteger(numericId) && numericId > 0
-    ? store.services.find(s => s.id === numericId) : null;
-  if (!service) throw notFound('Service not found.');
-  return service;
+const SELECT_SERVICE = `
+  SELECT s.id, s.name, s.description, s.duration_minutes, s.priority,
+        q.status = 'open' AS is_open
+  FROM services s
+  JOIN queues q ON q.service_id = s.id
+  `;
+
+  const toService = (row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    durationMinutes: row.duration_minutes,
+    priority: row.priority,
+    isOpen: row.is_open,
+  });
+
+  const asConflict = (err) => {
+    if (err.code === '23505') {
+      const error = conflict('A service with this name already exists.');
+      error.fields = { name: error.message };
+      return error;
+    }
+    return err;
+  };
+
+const listServices = async () => {
+  const { rows } = await query(`${SELECT_SERVICE} ORDER BY s.id`);
+  return rows.map(toService);
 };
 
-const listServices = () => store.services;
-const getService = id => findService(id);
-const createService = body => {
-  const values = validateService(body);
-  const service = { id: nextId('services'), ...values };
-  store.services.push(service);
-  store.queues[service.id] = [];
-  return service;
+const getService = async (id) => {
+  const numericId = Number(id);
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) throw notFound('Service not found.');
+  const { rows } = await query (`${SELECT_SERVICE} WHERE s.id = $1`, [numericId]);
+  if (rows.length === 0) throw notFound('Service not found.');
+  return toService(rows[0]);
 };
-const updateService = (id, body) => {
-  const service = findService(id);
-  Object.assign(service, validateService(body, service));
-  return service;
+
+const createService = async (body) => {
+  const values = validateService(body);
+  try {
+    return await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `INSERT INTO services (name, description, duration_minutes, priority)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, name, description, duration_minutes, priority`,
+        [values.name, values.description, values.durationMinutes, values.priority]
+      );
+      await client.query('INSERT INTO queues (service_id, status) VALUES ($1, $2)', [
+        rows[0].id,
+        values.isOpen ? 'open' : 'closed',
+      ]);
+      return toService({ ...rows[0], is_open: values.isOpen });
+    });
+  } catch (err) {
+    throw asConflict(err);
+  }
+};
+
+const updateService = async (id, body) => {
+  const existing = await getService(id);
+  const values = validateService(body, existing);
+  try{
+    return await withTransaction(async (client) => {
+      await client.query(
+        `UPDATE services SET name =$1, description = $2, duration_minutes = $3, priority =$4
+        WHERE id = $5`,
+        [values.name, values.description, values.durationMinutes, values.priority, existing.id]
+      );
+      await client.query('UPDATE queues SET status = $1 WHERE service_id = $2', [
+        values.isOpen ? 'open' : 'closed',
+        existing.id,
+      ]);
+      return { id: existing.id, ...values };
+    });
+  } catch (err) {
+    throw asConflict(err);
+  }
 };
 
 module.exports = { listServices, getService, createService, updateService };
