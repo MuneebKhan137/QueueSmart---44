@@ -1,3 +1,4 @@
+// being replaced by the database (src/db/db.js) module by module, delete once nothing requires it
 // helpers so seed times are relative to when the server started
 const minutesAgo = (mins) => new Date(Date.now() - mins * 60 * 1000).toISOString();
 const daysAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
