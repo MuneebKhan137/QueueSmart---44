@@ -1,16 +1,20 @@
 const request = require('supertest');
 const app = require('../src/app');
-const { store, resetStore } = require('../src/data/store');
+const { query, resetTestDb } = require('../src/db/db');
+const count = async (table) => (await query(`SELECT COUNT(*):: int AS n FROM ${table}`)).rows[0].n;
 const valid = { name: 'Career Coaching', description: 'Help with resumes and interviews.', durationMinutes: 20, priority: 'medium' };
 const admin = req => req.set('x-user-id', '1');
 const user = req => req.set('x-user-id', '6');
-beforeEach(resetStore);
+beforeEach(async () => {
+  await resetTestDb();
+});
 
 test('admin-created service is returned to a separate user and has an empty queue', async () => {
   const created = await admin(request(app).post('/api/services')).send(valid);
   expect(created.status).toBe(201);
   expect(created.body.service).toEqual({ id: 5, ...valid, isOpen: true });
-  expect(store.queues[5]).toEqual([]);
+  const q = await query('SELECT service_id, status FROM queues WHERE service_id = 5');
+  expect(q.rows[0]).toEqual({ service_id: 5, status: 'open' });
   const listed = await user(request(app).get('/api/services'));
   expect(listed.status).toBe(200);
   expect(listed.body.services).toContainEqual(created.body.service);
@@ -37,7 +41,7 @@ test.each(['get', 'post', 'patch'])('%s requires a signed-in user', async method
 test.each(['post', 'patch'])('ordinary users cannot %s services', async method => {
   const path = method === 'patch' ? '/api/services/1' : '/api/services';
   expect((await user(request(app)[method](path)).send(valid)).status).toBe(403);
-  expect(store.services).toHaveLength(4);
+  expect(await count('services')).toBe(4);
 });
 
 test.each([
@@ -52,8 +56,8 @@ test.each([
   const res = await admin(request(app).post('/api/services')).send({ ...valid, ...change });
   expect(res.status).toBe(400);
   expect(res.body.fields[field]).toBeDefined();
-  expect(store.services).toHaveLength(4);
-  expect(Object.keys(store.queues)).toHaveLength(4);
+  expect(await count('services')).toBe(4);
+  expect(await count('queues')).toBe(4);
 });
 
 test('missing and malformed service bodies return 400', async () => {
@@ -74,7 +78,8 @@ test('editing keeps its own name but cannot take another service name', async ()
   expect((await admin(request(app).patch('/api/services/1')).send({ name: 'academic advising' })).status).toBe(200);
   const res = await admin(request(app).patch('/api/services/1')).send({ name: 'Financial Aid', isOpen: false });
   expect(res.status).toBe(409);
-  expect(store.services[0].isOpen).toBe(true);
+  const after = await query("SELECT status FROM queues WHERE service_id = 1");
+  expect(after.rows[0].status).toBe('open');
 });
 
 test.each(['999', 'abc', '-1', '1.5'])('unknown service %s returns 404', async id => {
