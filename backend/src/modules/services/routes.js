@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireUser, requireAdmin } = require('../../middleware/currentUser');
-const { listServices, getService, createService, updateService } = require('./service');
+const { listServices, getService, createService, updateService, deleteService } = require('./service');
 const router = express.Router();
 
 router.get('/', requireUser, async (req, res) => {
@@ -14,6 +14,9 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 router.patch('/:id', requireAdmin, async (req, res) => {
   res.json({ service: await updateService(req.params.id, req.body) });
+});
+router.delete('/:id', requireAdmin, async (req, res) => {
+  res.json(await deleteService(req.params.id));
 });
 
 module.exports = router;

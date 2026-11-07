@@ -96,4 +96,21 @@ const updateService = async (id, body) => {
   }
 };
 
-module.exports = { listServices, getService, createService, updateService };
+const deleteService = async (id) => {
+  const existing = await getService(id);
+  return withTransaction (async (client) => {
+    const { rows } = await client.query(
+      `SELECT COUNT(*)::int AS n
+      FROM queue_entries e JOIN queues q ON q.id = e.queue_id
+      WHERE q.service_id = $1 AND e.status = 'waiting'`,
+      [existing.id]
+    );
+    if (rows[0].n > 0) {
+      throw conflict('This service still has people waiting. Serve or remove them first.');
+    }
+    await client.query('DELETE FROM services WHERE id = $1', [existing.id]);
+    return { deleted: true, id: existing.id, name: existing.name };
+  });
+};
+
+module.exports = { listServices, getService, createService, updateService, deleteService };
