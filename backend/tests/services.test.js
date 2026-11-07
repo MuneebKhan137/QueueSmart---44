@@ -1,4 +1,4 @@
-const request = require('supertest');
+﻿const request = require('supertest');
 const app = require('../src/app');
 const { query, resetTestDb } = require('../src/db/db');
 const count = async (table) => (await query(`SELECT COUNT(*):: int AS n FROM ${table}`)).rows[0].n;
@@ -91,4 +91,40 @@ test('successive creates allocate distinct server IDs', async () => {
   const one = await admin(request(app).post('/api/services')).send(valid);
   const two = await admin(request(app).post('/api/services')).send({ ...valid, name: 'Tutoring' });
   expect(two.body.service.id).toBe(one.body.service.id + 1);
+});
+
+test('admin can delete a service with nobody waiting, and its queue goes too', async () => {
+  const created = await admin(request(app).post('/api/services')).send(valid);
+  const id = created.body.service.id;
+  expect(await count('services')).toBe(5);
+
+  const deleted = await admin(request(app).delete(`/api/services/${id}`));
+  expect(deleted.status).toBe(200);
+  expect(deleted.body).toMatchObject({ deleted: true, id, name: valid.name });
+  expect(await count('services')).toBe(4);
+  expect((await query('SELECT 1 FROM queues WHERE service_id = $1', [id])).rowCount).toBe(0);
+  expect((await user(request(app).get(`/api/services/${id}`))).status).toBe(404);
+});
+
+test('a service with people waiting cannot be deleted', async () => {
+  const waiting = `SELECT COUNT(*)::int AS n FROM queue_entries e
+     JOIN queues q ON q.id = e.queue_id
+     WHERE q.service_id = 2 AND e.status = 'waiting'`;
+  const before = (await query(waiting)).rows[0].n;
+  expect(before).toBeGreaterThan(0);
+
+  const res = await admin(request(app).delete('/api/services/2'));
+  expect(res.status).toBe(409);
+  expect(await count('services')).toBe(4);
+  expect((await query(waiting)).rows[0].n).toBe(before);
+});
+
+test('delete requires an admin', async () => {
+  expect((await request(app).delete('/api/services/1')).status).toBe(401);
+  expect((await user(request(app).delete('/api/services/1'))).status).toBe(403);
+  expect(await count('services')).toBe(4);
+});
+
+test.each(['999', 'abc', '-1'])('deleting unknown service %s returns 404', async id => {
+  expect((await admin(request(app).delete(`/api/services/${id}`))).status).toBe(404);
 });
